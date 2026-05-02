@@ -969,6 +969,10 @@ function generateReceiptPDF(order){
       console.error('Drive Backup Error:', err);
       showToast('❌ Backup Gagal. Sila check console.');
     });
+
+    } catch(e) {
+    console.error('Base64 Error:', e);
+  }
 }
   
 // ═══════════════════════════════
