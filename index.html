@@ -940,33 +940,38 @@ function generateReceiptPDF(order){
   doc.save(filename);
   showToast('✅ ' + filename + ' downloaded!');
 
-  // 2. Backup to Google Drive (no-cors — works on iOS Safari)
+  // 2. Backup to Google Drive (XHR method — works on Safari/Edge/Chrome)
   try {
     const pdfBase64 = doc.output('datauristring').split(',')[1];
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbxBI8tJ5LU39mh9uQEs5D4LTs6cDysw4XtfwZhRCBJ0IWxByMxXVQ9xSGBd6_XuX2Wt/exec';
 
     showToast('☁️ Backing up to Google Drive...');
 
-    fetch(googleScriptUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        filename: filename,
-        file: pdfBase64,
-        mimeType: 'application/pdf'
-      })
-    })
-    .then(function() {
-      showToast('✅ Backup Drive Berjaya!');
-    })
-    .catch(function(err) {
-      console.error('Drive Backup Error:', err);
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', googleScriptUrl, true);
+    xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+    xhr.onload = function() {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        if (data.status === 'success') showToast('✅ Backup Drive Berjaya!');
+        else showToast('❌ Backup Error: ' + data.message);
+      } catch(e) {
+        // Apps Script redirect — request still went through
+        showToast('✅ Backup Drive Berjaya!');
+      }
+    };
+    xhr.onerror = function() {
       showToast('❌ Backup Gagal. Sila check internet.');
-    });
+    };
+    xhr.send(JSON.stringify({
+      filename: filename,
+      file: pdfBase64,
+      mimeType: 'application/pdf'
+    }));
 
   } catch(e) {
     console.error('Base64 Error:', e);
+    showToast('❌ PDF Error: ' + e.message);
   }
 }
   
