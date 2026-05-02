@@ -950,6 +950,7 @@ function generateReceiptPDF(order){
     
     fetch(googleScriptUrl, {
       method: 'POST',
+      mode: 'no-cors',
       // 👇 就是加了下面这三行，把它伪装成普通文本
       headers: {
         'Content-Type': 'text/plain;charset=utf-8'
