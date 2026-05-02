@@ -950,6 +950,10 @@ function generateReceiptPDF(order){
     
     fetch(googleScriptUrl, {
       method: 'POST',
+      // 👇 就是加了下面这三行，把它伪装成普通文本
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
       body: JSON.stringify({
         filename: filename,
         file: pdfBase64,
@@ -959,11 +963,12 @@ function generateReceiptPDF(order){
     .then(res => res.json())
     .then(data => {
       if(data.status === 'success') showToast('✅ Backup Drive Berjaya!');
+      else showToast('❌ Backup Error: ' + data.message);
     })
-    .catch(err => console.error('Drive Backup Error:', err));
-  } catch(e) {
-    console.error('Base64 Error:', e);
-  }
+    .catch(err => {
+      console.error('Drive Backup Error:', err);
+      showToast('❌ Backup Gagal. Sila check console.');
+    });
 }
   
 // ═══════════════════════════════
