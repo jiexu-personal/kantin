@@ -2,10 +2,11 @@
 // Service Worker — Kantin Terminal Ferry
 // Version bump here to force cache refresh
 // ═══════════════════════════════
-const CACHE_NAME = 'kantin-v1.2';
+const CACHE_NAME = 'kantin-v2.0';
 const OFFLINE_URLS = [
   './index.html',
   './manifest.json',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
   'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap',
 ];
 
@@ -13,11 +14,15 @@ const OFFLINE_URLS = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(OFFLINE_URLS).catch(err => {
-        // Font may fail on first install offline, that's OK
-        console.warn('SW install cache partial:', err);
-        return cache.add('./index.html');
-      });
+      // Cache index.html dan manifest dulu (mesti berjaya)
+      return cache.addAll(['./index.html', './manifest.json'])
+        .then(() => {
+          // Cache CDN files secara berasingan (gagal = OK, akan cuba semula kemudian)
+          return Promise.allSettled([
+            cache.add('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+            cache.add('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap'),
+          ]);
+        });
     }).then(() => self.skipWaiting())
   );
 });
@@ -68,6 +73,23 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
           return response;
         }).catch(() => new Response('', { status: 503 }));
+      })
+    );
+    return;
+  }
+
+  // For jsPDF CDN: cache-first (supaya boleh guna offline)
+  if (url.hostname.includes('cdnjs.cloudflare.com')) {
+    event.respondWith(
+      caches.match(request).then(cached => {
+        if (cached) return cached;
+        return fetch(request).then(response => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+          }
+          return response;
+        }).catch(() => new Response('// jsPDF offline — sila sambung internet sekali untuk download', { status: 503 }));
       })
     );
     return;
