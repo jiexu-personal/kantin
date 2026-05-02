@@ -806,7 +806,7 @@ function exportAllReceiptsCSV(){
 }
 
 // ═══════════════════════════════
-// PDF RECEIPT GENERATOR
+// PDF RECEIPT GENERATOR — 80mm Thermal
 // ═══════════════════════════════
 function generateReceiptPDF(order){
   if(!order){showToast('❌ Data pesanan tidak dijumpai.');return;}
@@ -816,131 +816,182 @@ function generateReceiptPDF(order){
     return;
   }
   const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a5'});
-  const W=148;
-  const margin=12;
-  const colW=W-margin*2;
-  let y=margin;
 
-  // Header background
-  doc.setFillColor(74,14,14);
-  doc.rect(0,0,W,36,'F');
+  // ── 80mm thermal paper constants ──────────────────
+  const W=80;          // 80mm width — standard thermal receipt
+  const mg=4;          // 4mm side margin (tight like real receipt)
+  const cw=W-mg*2;     // printable width = 72mm
+  const LINE=4.2;      // standard line height
+  const DASH='- - - - - - - - - - - - - - - - - - - -';
 
-  // Business info in header
-  doc.setTextColor(245,183,177);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(14);
-  doc.text(S.biz.name,W/2,y+8,{align:'center'});
-  doc.setFontSize(8);
-  doc.setFont('helvetica','normal');
-  doc.text(S.biz.address,W/2,y+15,{align:'center',maxWidth:colW});
-  doc.text('Tel: '+S.biz.tel,W/2,y+21,{align:'center'});
-  if(S.biz.regNo)doc.text('No. Pendaftaran: '+S.biz.regNo,W/2,y+27,{align:'center'});
-  if(S.biz.sstNo&&S.biz.sstEnabled)doc.text('No. SST: '+S.biz.sstNo,W/2,y+33,{align:'center'});
+  // ── Helper: draw a dashed separator ───────────────
+  function dashedLine(){
+    doc.setDrawColor(180,178,169);doc.setLineWidth(0.15);
+    doc.setLineDashPattern([1,1],0);
+    doc.line(mg,y,W-mg,y);
+    doc.setLineDashPattern([],0);
+    y+=3;
+  }
 
-  y=40;
+  // ── Helper: solid line ─────────────────────────────
+  function solidLine(color){
+    doc.setDrawColor(...(color||[44,44,42]));doc.setLineWidth(0.3);
+    doc.line(mg,y,W-mg,y);y+=3;
+  }
 
-  // Receipt info box
+  // ── Helper: centered text ──────────────────────────
+  function ctext(txt,size,bold,color){
+    doc.setFontSize(size||8);
+    doc.setFont('helvetica',bold?'bold':'normal');
+    doc.setTextColor(...(color||[44,44,42]));
+    doc.text(txt,W/2,y,{align:'center',maxWidth:cw});
+    y+=LINE*(size&&size>9?1.4:1);
+  }
+
+  // ── Helper: left+right row ─────────────────────────
+  function lrtext(left,right,size,boldRight){
+    doc.setFontSize(size||8);
+    doc.setFont('helvetica','normal');doc.setTextColor(44,44,42);
+    doc.text(String(left),mg,y,{maxWidth:cw*0.65});
+    doc.setFont('helvetica',boldRight?'bold':'normal');
+    doc.text(String(right),W-mg,y,{align:'right'});
+    y+=LINE;
+  }
+
+  // ── Calculate dynamic page height ─────────────────
+  // Estimate: header~28 + items*(LINE*2) + totals~20 + footer~20
+  const estH = 30 + (order.items.length * LINE * 2.2) + 40 + (order.note?8:0) + (S.biz.sstEnabled?6:0) + 28;
+  const pageH = Math.max(estH, 80);
+
+  const doc=new jsPDF({
+    orientation:'portrait',
+    unit:'mm',
+    format:[W, pageH]
+  });
+
+  let y=mg+2;
+
+  // ══════════════════════════════════════════════════
+  // HEADER — Business Info
+  // ══════════════════════════════════════════════════
+  ctext(S.biz.name, 11, true, [44,44,42]);
+  ctext(S.biz.address, 7, false, [100,98,95]);
+  ctext('Tel: '+S.biz.tel, 7, false, [100,98,95]);
+  if(S.biz.regNo) ctext('SSM: '+S.biz.regNo, 7, false, [100,98,95]);
+  if(S.biz.sstEnabled&&S.biz.sstNo) ctext('No. SST: '+S.biz.sstNo, 7, false, [100,98,95]);
+
+  y+=1;
+  solidLine([44,44,42]);
+
+  // ══════════════════════════════════════════════════
+  // RECEIPT META
+  // ══════════════════════════════════════════════════
+  ctext('RESIT RASMI / OFFICIAL RECEIPT', 8, true, [44,44,42]);
+  y+=1;
+
+  doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(80,78,76);
+  doc.text('No. Resit  : '+order.receiptId, mg, y); y+=LINE;
+  doc.text('No. Tiket  : #'+fmt(order.ticketNum), mg, y); y+=LINE;
+  doc.text('Tarikh     : '+(order.dateTime||order.time), mg, y); y+=LINE;
+  const meth=S.payMethods.find(p=>p.id===order.payMethod)||{name:order.payMethod};
+  doc.text('Bayaran    : '+meth.name, mg, y); y+=LINE+1;
+
+  dashedLine();
+
+  // ══════════════════════════════════════════════════
+  // COLUMN HEADERS
+  // ══════════════════════════════════════════════════
+  doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(120,118,115);
+  doc.text('ITEM', mg, y);
+  doc.text('QTY', mg+38, y, {align:'center'});
+  doc.text('HARGA', mg+52, y);
+  doc.text('JUMLAH', W-mg, y, {align:'right'});
+  y+=LINE-0.5;
+  dashedLine();
+
+  // ══════════════════════════════════════════════════
+  // ITEMS
+  // ══════════════════════════════════════════════════
   doc.setTextColor(44,44,42);
-  doc.setFillColor(253,237,236);
-  doc.rect(margin,y,colW,18,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(11);
-  doc.setTextColor(74,14,14);
-  doc.text('RESIT RASMI / OFFICIAL RECEIPT',W/2,y+7,{align:'center'});
-  doc.setFont('helvetica','normal');doc.setFontSize(8);
-  doc.text('No. Resit: '+order.receiptId,margin+3,y+13);
-  doc.text('No. Tiket: #'+fmt(order.ticketNum),W/2,y+13);
-  doc.text('Tarikh: '+(order.dateTime||order.time),W-margin-3,y+13,{align:'right'});
-  y+=22;
-
-  // Divider
-  doc.setDrawColor(192,57,43);doc.setLineWidth(0.4);
-  doc.line(margin,y,W-margin,y);y+=5;
-
-  // Items table header
-  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(136,135,128);
-  doc.text('ITEM',margin,y);
-  doc.text('QTY',margin+70,y,{align:'center'});
-  doc.text('HARGA',margin+82,y);
-  doc.text('JUMLAH',W-margin,y,{align:'right'});
-  y+=2;
-  doc.setDrawColor(180,178,169);doc.setLineWidth(0.2);
-  doc.line(margin,y,W-margin,y);y+=4;
-
-  // Items
-  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(44,44,42);
   order.items.forEach(item=>{
-    const lineTotal=item.price!=null?(item.price*item.qty).toFixed(2):'—';
-    const unitPrice=item.price!=null?item.price.toFixed(2):'—';
-    doc.setFont('helvetica','bold');doc.setFontSize(8.5);
-    doc.text('['+item.id+'] '+item.name,margin,y);
-    doc.setFont('helvetica','normal');doc.setFontSize(9);
-    doc.text(String(item.qty),margin+70,y,{align:'center'});
-    doc.text('RM '+unitPrice,margin+82,y);
-    doc.text('RM '+lineTotal,W-margin,y,{align:'right'});
-    y+=6;
-    if(y>190){doc.addPage();y=margin;}
+    const unitPrice = item.price!=null ? 'RM '+item.price.toFixed(2) : '—';
+    const lineTotal = item.price!=null ? 'RM '+(item.price*item.qty).toFixed(2) : '—';
+
+    // Item name line (bold, truncate if needed)
+    doc.setFontSize(8);doc.setFont('helvetica','bold');
+    doc.text(item.name, mg, y, {maxWidth: cw*0.7});
+    y+=LINE;
+
+    // Code + qty + price + total on second line
+    doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(120,118,115);
+    doc.text('['+item.id+']', mg, y);
+    doc.setTextColor(44,44,42);
+    doc.text(String(item.qty)+'x', mg+38, y, {align:'center'});
+    doc.text(unitPrice, mg+52, y);
+    doc.setFont('helvetica','bold');
+    doc.text(lineTotal, W-mg, y, {align:'right'});
+    doc.setFont('helvetica','normal');
+    y+=LINE+0.5;
   });
 
   // Note
   if(order.note){
-    doc.setFontSize(8);doc.setTextColor(192,57,43);doc.setFont('helvetica','italic');
-    doc.text('Nota: '+order.note,margin,y);y+=5;
+    y+=1;
+    doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(160,80,60);
+    doc.text('* '+order.note, mg, y, {maxWidth:cw}); y+=LINE+1;
     doc.setTextColor(44,44,42);doc.setFont('helvetica','normal');
   }
 
-  y+=1;
-  doc.setDrawColor(180,178,169);doc.setLineWidth(0.2);
-  doc.line(margin,y,W-margin,y);y+=5;
+  dashedLine();
 
-  // Totals
+  // ══════════════════════════════════════════════════
+  // TOTALS
+  // ══════════════════════════════════════════════════
   const subtotal=(order.subtotal||order.total).toFixed(2);
   const sstAmt=(order.sstAmt||0).toFixed(2);
   const grandTotal=order.total.toFixed(2);
 
-  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(44,44,42);
-  doc.text('Subtotal:',W-margin-40,y);doc.text('RM '+subtotal,W-margin,y,{align:'right'});y+=5;
+  doc.setTextColor(80,78,76);
+  lrtext('Subtotal', 'RM '+subtotal, 8, false);
   if(S.biz.sstEnabled&&order.sstAmt>0){
-    doc.text('SST ('+S.biz.sstRate+'%):',W-margin-40,y);doc.text('RM '+sstAmt,W-margin,y,{align:'right'});y+=5;
+    lrtext('SST ('+S.biz.sstRate+'%)', 'RM '+sstAmt, 8, false);
   }
 
-  doc.setDrawColor(192,57,43);doc.setLineWidth(0.4);
-  doc.line(W-margin-60,y,W-margin,y);y+=4;
+  y+=1;
+  solidLine([44,44,42]);
 
-  // Total box
-  doc.setFillColor(74,14,14);doc.roundedRect(W-margin-64,y-2,66,10,2,2,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);
-  doc.text('JUMLAH / TOTAL:',W-margin-62,y+5);
-  doc.setFontSize(11);
-  doc.text('RM '+grandTotal,W-margin,y+5.5,{align:'right'});y+=14;
+  // Grand total — big and bold
+  doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(44,44,42);
+  doc.text('JUMLAH', mg, y);
+  doc.text('RM '+grandTotal, W-mg, y, {align:'right'});
+  y+=LINE*1.6;
 
-  // Payment method row
-  const m=S.payMethods.find(p=>p.id===order.payMethod)||{name:order.payMethod};
-  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(44,44,42);
-  doc.setFillColor(244,243,238);doc.roundedRect(margin,y-1,colW,8,2,2,'F');
-  doc.text('Kaedah Bayaran: '+m.name,margin+3,y+4);
-  doc.setTextColor(30,132,73);doc.setFont('helvetica','bold');
-  doc.text('✓ Dibayar / Paid',W-margin-3,y+4,{align:'right'});
-  y+=12;
+  // Paid status badge
+  doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(30,132,73);
+  ctext('*** DIBAYAR / PAID ***', 8, true, [30,132,73]);
 
-  // Footer
-  doc.setDrawColor(192,57,43);doc.setLineWidth(0.3);
-  doc.line(margin,y,W-margin,y);y+=4;
-  doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(136,135,128);
-  doc.text('Ini adalah resit yang dijana secara komputer dan adalah sah tanpa tandatangan.',W/2,y,{align:'center'});y+=4;
-  doc.text('This is a computer generated receipt and is valid without signature.',W/2,y,{align:'center'});y+=5;
+  y+=1;
+  solidLine([44,44,42]);
 
+  // ══════════════════════════════════════════════════
+  // FOOTER
+  // ══════════════════════════════════════════════════
+  y+=1;
+  ctext('Terima kasih kerana sudi berkunjung!', 8, true, [44,44,42]);
+  ctext('Thank you for your visit!', 7.5, false, [80,78,76]);
+  y+=2;
   if(S.biz.sstEnabled){
-    doc.setFont('helvetica','normal');doc.setFontSize(7.5);
-    doc.text('SST dikenakan mengikut Akta Cukai Perkhidmatan dan Jualan 2018.',W/2,y,{align:'center'});y+=4;
+    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(140,138,135);
+    doc.text('SST dikenakan mengikut Akta Cukai', W/2, y, {align:'center'}); y+=3.5;
+    doc.text('Perkhidmatan dan Jualan 2018.', W/2, y, {align:'center'}); y+=4;
   }
+  doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(160,158,155);
+  doc.text('Resit ini dijana komputer & sah tanpa tandatangan.', W/2, y, {align:'center'}); y+=3.5;
+  doc.text('Computer generated receipt, valid without signature.', W/2, y, {align:'center'}); y+=4;
+  doc.setTextColor(180,178,169);
+  doc.text('Sistem POS oleh ChanJX · '+fmtDateTime(), W/2, y, {align:'center'});
 
-  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(74,14,14);
-  doc.text('Terima kasih atas kunjungan anda! / Thank you for your visit!',W/2,y,{align:'center'});y+=5;
-  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(180,178,169);
-  doc.text('Sistem POS oleh ChanJX · Dicetak: '+fmtDateTime(),W/2,y,{align:'center'});
-
-  // Save PDF
+  // ── Save ──────────────────────────────────────────
   const filename=order.receiptId+'.pdf';
   doc.save(filename);
   showToast('✅ '+filename+' downloaded!');
