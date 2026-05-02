@@ -1,0 +1,29 @@
+{
+  "name": "Kantin Terminal Ferry",
+  "short_name": "Kantin",
+  "description": "Sistem Pesanan Kantin @ Terminal Ferry, Minyak Beku, Batu Pahat",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#4A0E0E",
+  "theme_color": "#4A0E0E",
+  "lang": "ms",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "food"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

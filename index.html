@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Kantin Terminal Ferry</title>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- iOS PWA Meta Tags -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kantin">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#4A0E0E">
+
+<!-- iOS Icons (inline SVG-based, no external files needed) -->
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+
+<!-- iOS Splash Screen color -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+:root {
+  --amber:#C0392B;--amber-h:#a93226;--amber-light:#F5B7B1;--amber-pale:#FDEDEC;--amber-dark:#4A0E0E;
+  --green:#1E8449;--green-light:#D5F5E3;--green-mid:#27AE60;
+  --red:#A32D2D;--red-light:#FCEBEB;--red-mid:#D04040;
+  --blue:#185FA5;--blue-light:#E6F1FB;
+  --gray-light:#F4F3EE;--gray-mid:#B4B2A9;--gray-dark:#5F5E5A;
+  --bg:#f5f2ee;--surface:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text:#2C2C2A;--muted:#888780;--muted2:#B4B2A9;
+  --r:10px;--rl:14px;
+  --shadow:0 1px 4px rgba(0,0,0,0.08);
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+  --sar: env(safe-area-inset-right);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{height:100%;height:-webkit-fill-available;}
+body{
+  min-height:100vh;min-height:-webkit-fill-available;
+  font-family:'Noto Sans SC',-apple-system,sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;
+  overscroll-behavior:none;-webkit-overflow-scrolling:touch;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;-webkit-appearance:none;border-radius:0;}
+input[type=number]{-moz-appearance:textfield;}
+.hidden{display:none!important;}
+
+/* INSTALL BANNER */
+#install-banner{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:9999;
+  background:var(--amber-dark);color:var(--amber-light);
+  padding:14px 16px calc(var(--sab) + 14px);
+  box-shadow:0 -4px 20px rgba(0,0,0,.3);
+  flex-direction:column;gap:10px;
+}
+#install-banner.show{display:flex;}
+.ib-row{display:flex;align-items:center;gap:10px;}
+.ib-icon{font-size:28px;}
+.ib-text{flex:1;}
+.ib-title{font-size:13px;font-weight:800;color:#fff;}
+.ib-sub{font-size:11px;opacity:.75;margin-top:1px;}
+.ib-btn{background:var(--amber-light);color:var(--amber-dark);border:none;border-radius:10px;padding:9px 18px;font-size:12px;font-weight:800;cursor:pointer;flex-shrink:0;}
+.ib-ios{font-size:11px;opacity:.75;text-align:center;line-height:1.6;}
+.ib-close{position:absolute;top:12px;right:12px;background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;padding:4px;}
+
+/* ROLE PICKER */
+#role-picker{
+  min-height:100vh;min-height:-webkit-fill-available;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:calc(var(--sat) + 28px) 20px calc(var(--sab) + 28px);
+  background:var(--bg);
+}
+.rp-logo{font-size:52px;margin-bottom:8px;text-align:center;}
+.rp-name{font-size:18px;font-weight:900;letter-spacing:-.3px;text-align:center;line-height:1.35;max-width:280px;}
+.rp-sub{font-size:11px;color:var(--muted);margin-top:6px;text-align:center;margin-bottom:28px;}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:340px;}
+.role-card{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:18px;
+  padding:24px 14px 20px;text-align:center;cursor:pointer;
+  transition:transform .15s,box-shadow .15s,border-color .15s;
+  box-shadow:var(--shadow);
+}
+.role-card:active{transform:scale(.96);}
+.role-card:hover{border-color:var(--amber);box-shadow:0 4px 16px rgba(192,57,43,.18);}
+.rc-icon{font-size:34px;margin-bottom:9px;}
+.rc-name{font-size:14px;font-weight:700;}
+.rc-desc{font-size:11px;color:var(--muted);margin-top:3px;}
+.rp-copy{font-size:10px;color:var(--muted2);margin-top:24px;text-align:center;}
+.pwa-status{font-size:11px;background:var(--green-light);color:var(--green);padding:4px 12px;border-radius:20px;margin-top:10px;font-weight:600;}
+
+/* SHELL */
+#app-shell{display:none;flex-direction:column;height:100vh;height:-webkit-fill-available;}
+.topbar{
+  background:var(--amber-dark);padding:0 16px;
+  padding-top:var(--sat);height:calc(52px + var(--sat));
+  display:flex;align-items:flex-end;padding-bottom:10px;
+  gap:10px;position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);flex-shrink:0;
+}
+.tb-back{background:none;border:none;font-size:22px;cursor:pointer;color:rgba(255,255,255,.7);line-height:1;padding:0 6px 0 0;}
+.tb-title{font-size:14px;font-weight:700;flex:1;letter-spacing:-.2px;color:#fff;line-height:1.3;}
+.role-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;}
+.rb-staff{background:var(--amber-pale);color:var(--amber-dark);}
+.rb-kitchen{background:var(--green-light);color:var(--green);}
+
+.screen{display:none;flex:1;overflow:hidden;}
+.screen.active{display:flex;flex-direction:column;}
+.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+.content{padding:14px;max-width:520px;margin:0 auto;padding-bottom:calc(var(--sab) + 80px);}
+.content-kitchen{padding:14px;max-width:520px;margin:0 auto;padding-bottom:calc(var(--sab) + 20px);}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);box-shadow:var(--shadow);}
+.section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.divider{height:1px;background:var(--border);}
+
+/* BUTTONS */
+.btn{display:block;width:100%;padding:14px;border-radius:var(--r);border:none;font-size:14px;font-weight:700;cursor:pointer;text-align:center;transition:all .15s;}
+.btn:active{transform:scale(.97);}
+.btn-amber{background:var(--amber);color:#fff;}
+.btn-amber:active{background:var(--amber-h);}
+.btn-green{background:var(--green-mid);color:#fff;}
+.btn-red{background:var(--red-mid);color:#fff;}
+.btn-outline{background:transparent;border:1.5px solid var(--border2);color:var(--text);}
+.btn-sm{width:auto;padding:8px 16px;font-size:12px;border-radius:8px;}
+
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;}
+.badge-preparing{background:#FEF9E7;color:#9A7D0A;}
+.badge-ready{background:var(--green-light);color:var(--green);}
+.badge-paid{background:var(--gray-light);color:var(--gray-dark);}
+
+/* TAB BAR */
+.tab-bar{
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;z-index:200;flex-shrink:0;padding-bottom:var(--sab);
+}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:9px 4px 8px;cursor:pointer;font-size:10px;color:var(--muted);gap:2px;transition:color .15s;position:relative;}
+.tab-item:active{opacity:.7;}
+.tab-item.active{color:var(--amber);}
+.tab-icon{font-size:21px;line-height:1;}
+.pay-dot{position:absolute;top:7px;right:calc(50% - 15px);width:7px;height:7px;background:var(--red-mid);border-radius:50%;display:none;}
+.pay-dot.show{display:block;}
+
+/* TICKET BANNER */
+.ticket-banner{
+  background:linear-gradient(135deg,var(--amber-dark) 0%,#7B1B1B 100%);
+  color:var(--amber-light);border-radius:var(--rl);padding:18px;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.tbl-label{font-size:11px;opacity:.7;font-weight:600;letter-spacing:.05em;}
+.tbl-num{font-size:46px;font-weight:900;line-height:1.05;color:#fff;}
+.btn-next{background:var(--amber-light);color:var(--amber-dark);border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;}
+.btn-next:active{background:#fff;transform:scale(.96);}
+
+/* ORDER FORM */
+.order-form-header{background:var(--amber-dark);color:var(--amber-light);padding:13px 16px;border-radius:var(--rl) var(--rl) 0 0;display:flex;align-items:center;justify-content:space-between;}
+.ofh-title{font-size:15px;font-weight:700;}
+.ofh-ticket{background:var(--amber);color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:800;}
+.cat-bar{display:flex;gap:6px;padding:10px 14px;overflow-x:auto;border-bottom:1px solid var(--border);}
+.cat-bar::-webkit-scrollbar{display:none;}
+.cat-btn{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;}
+.cat-btn:active{opacity:.7;}
+.cat-btn.active{background:var(--amber);color:#fff;border-color:var(--amber);}
+.menu-scroll{max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.menu-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.mr-code{font-size:10px;font-weight:700;color:var(--amber);min-width:30px;flex-shrink:0;}
+.mr-info{flex:1;min-width:0;}
+.mr-name{font-size:13px;font-weight:600;}
+.mr-sub{font-size:11px;color:var(--muted);}
+.mr-price{font-size:13px;font-weight:700;color:var(--amber);flex-shrink:0;margin-right:8px;}
+.qc{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.qc-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.qc-btn:active{opacity:.6;}
+.qc-btn.plus{background:var(--amber);color:#fff;border-color:var(--amber);}
+.qc-val{font-size:13px;font-weight:700;min-width:18px;text-align:center;}
+.cart-preview{padding:12px 14px 4px;}
+.cp-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:3px 0;}
+.cp-row .name{color:var(--muted);}
+.cp-total{display:flex;justify-content:space-between;align-items:center;padding:10px 0 6px;border-top:1px solid var(--border);margin-top:6px;}
+.cp-total .label{font-size:13px;font-weight:600;}
+.cp-total .amt{font-size:18px;font-weight:800;color:var(--amber);}
+.order-note{width:100%;border:1.5px solid var(--border2);border-radius:10px;padding:10px 12px;font-size:13px;background:var(--bg);outline:none;resize:none;color:var(--text);}
+.order-note:focus{border-color:var(--amber);}
+.order-note::placeholder{color:var(--muted2);}
+.form-footer{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;}
+.pay-method-section{padding:10px 14px;border-top:1px solid var(--border);}
+.pms-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;}
+.pm-chips{display:flex;flex-wrap:wrap;gap:7px;}
+.pm-chip{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--border2);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;background:var(--bg);}
+.pm-chip:active{opacity:.7;}
+.pm-chip.selected{border-color:var(--amber);background:var(--amber-pale);color:var(--amber-dark);}
+
+/* ACTIVE ORDERS */
+.active-orders-section{margin-top:6px;}
+.order-chip{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);}
+.oc-num{font-size:22px;font-weight:900;color:var(--amber);min-width:38px;}
+.oc-info{flex:1;min-width:0;}
+.oc-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.oc-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.oc-actions{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+
+/* PAYMENTS */
+.pay-confirm-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden;}
+.pcc-head{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.pcc-num{font-size:20px;font-weight:900;color:var(--amber);}
+.pcc-info{flex:1;}
+.pcc-oid{font-size:11px;color:var(--muted);}
+.pcc-items{padding:8px 14px;}
+.cp-row-sm{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;}
+.cp-row-sm .n{color:var(--muted);}
+.pcc-total-row{padding:8px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.pcc-total{font-size:18px;font-weight:800;color:var(--amber);}
+.pcc-method{font-size:11px;background:var(--gray-light);color:var(--gray-dark);padding:3px 9px;border-radius:20px;font-weight:600;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--surface);border-radius:var(--rl);border:1px solid var(--border);padding:14px;box-shadow:var(--shadow);}
+.sc-val{font-size:26px;font-weight:800;color:var(--amber);}
+.sc-lbl{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* MENU MANAGER */
+.mm-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);}
+.mm-row:last-child{border:none;}
+.mm-code{font-size:11px;font-weight:700;color:var(--amber);min-width:32px;}
+.mm-info{flex:1;}
+.mm-info h4{font-size:13px;font-weight:600;}
+.mm-info p{font-size:11px;color:var(--muted);}
+.mm-price{font-size:13px;font-weight:700;color:var(--amber);margin-right:6px;}
+.del-btn{background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:4px;}
+.field{width:100%;border:1.5px solid var(--border2);border-radius:10px;padding:10px 12px;font-size:13px;background:var(--bg);outline:none;color:var(--text);}
+.field:focus{border-color:var(--amber);}
+.form-grid3{display:grid;grid-template-columns:60px 1fr 80px;gap:8px;}
+
+/* SETTINGS */
+.pm-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);}
+.pm-row:last-child{border:none;}
+.toggle{position:relative;width:42px;height:24px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.tslider{position:absolute;cursor:pointer;inset:0;background:var(--gray-mid);border-radius:20px;transition:.2s;}
+.tslider:before{content:'';position:absolute;width:20px;height:20px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s;}
+input:checked+.tslider{background:var(--green-mid);}
+input:checked+.tslider:before{transform:translateX(18px);}
+.danger-zone{background:var(--red-light);border:1px solid #F7C1C1;border-radius:var(--rl);padding:14px;margin-bottom:12px;}
+.dz-title{font-size:13px;font-weight:700;color:var(--red);margin-bottom:4px;}
+.dz-desc{font-size:12px;color:var(--red);opacity:.8;margin-bottom:12px;}
+
+/* KITCHEN */
+.k-refresh-btn{width:100%;padding:11px;background:var(--green-light);color:var(--green);border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:12px;}
+.k-card{background:var(--surface);border-radius:var(--rl);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:10px;}
+.k-card.k-paid{border-left:4px solid var(--amber);}
+.k-card.k-ready{border-left:4px solid var(--green-mid);}
+.kc-head{padding:11px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}
+.kc-num{font-size:22px;font-weight:900;color:var(--amber);min-width:36px;}
+.kc-time{font-size:11px;color:var(--muted);flex:1;}
+.k-pay-badge{background:var(--green-light);color:var(--green);font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;}
+.kc-body{padding:10px 14px;}
+.kc-item{display:flex;align-items:center;gap:6px;font-size:13px;padding:4px 0;}
+.kc-code{background:var(--amber-pale);color:var(--amber-dark);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;}
+.kc-note{font-size:11px;color:var(--amber);font-style:italic;padding-top:6px;}
+.kc-foot{padding:8px 14px 12px;display:flex;gap:8px;}
+
+.empty{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty-icon{font-size:42px;margin-bottom:10px;}
+.empty-text{font-size:13px;}
+.copy-footer{text-align:center;font-size:10px;color:var(--muted2);padding:18px 0 6px;}
+
+@media (min-width:768px){
+  .content,.content-kitchen{max-width:600px;}
+  .role-grid{max-width:420px;}
+  .rp-name{font-size:22px;}
+  .stats-grid{grid-template-columns:repeat(4,1fr);}
+  .menu-scroll{max-height:360px;}
+}
+@media (min-width:1024px){
+  .content,.content-kitchen{max-width:700px;}
+}
+</style>
+</head>
+<body>
+
+<!-- PWA INSTALL BANNER -->
+<div id="install-banner">
+  <button class="ib-close" onclick="dismissInstall()">×</button>
+  <div class="ib-row">
+    <div class="ib-icon">☕</div>
+    <div class="ib-text">
+      <div class="ib-title">Install Kantin ke Skrin Utama</div>
+      <div class="ib-sub">Guna seperti app sebenar, tanpa internet</div>
+    </div>
+    <button class="ib-btn" id="install-btn" onclick="installPWA()">Install</button>
+  </div>
+  <div class="ib-ios hidden" id="ios-hint">
+    Tekan <strong>⎙ Share</strong> → <strong>Add to Home Screen</strong>
+  </div>
+</div>
+
+<!-- ROLE PICKER -->
+<div id="role-picker">
+  <div class="rp-logo">☕</div>
+  <div class="rp-name">Kantin @ Terminal Ferry<br>Minyak Beku, Batu Pahat</div>
+  <div class="rp-sub">Pilih peranan untuk masuk sistem</div>
+  <div id="pwa-status-wrap"></div>
+  <div class="role-grid" style="margin-top:18px;">
+    <div class="role-card" onclick="enter('staff')">
+      <div class="rc-icon">🧑‍💼</div>
+      <div class="rc-name">Admin / Cashier</div>
+      <div class="rc-desc">Ambil pesanan · Kutip bayaran</div>
+    </div>
+    <div class="role-card" onclick="enter('kitchen')">
+      <div class="rc-icon">👨‍🍳</div>
+      <div class="rc-name">Dapur</div>
+      <div class="rc-desc">Lihat pesanan · Sahkan siap</div>
+    </div>
+  </div>
+  <div class="rp-copy" style="margin-top:20px;">© ChanJX · +60-18 781 1293</div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app-shell">
+  <div class="topbar">
+    <button class="tb-back" onclick="goBack()">←</button>
+    <span class="tb-title" id="tb-title">Kantin Terminal Ferry</span>
+    <span class="role-badge" id="role-badge"></span>
+  </div>
+
+  <!-- STAFF SCREEN -->
+  <div class="screen" id="screen-staff">
+    <div class="scroll-area">
+      <div id="staff-tab-home" class="staff-panel">
+        <div class="content">
+          <div class="ticket-banner">
+            <div>
+              <div class="tbl-label">NO. TIKET SEMASA</div>
+              <div class="tbl-num" id="banner-num">--</div>
+            </div>
+            <button class="btn-next" onclick="issueTicket()">+ Tiket Baru</button>
+          </div>
+          <div id="order-form-wrap" class="hidden">
+            <div class="card" style="overflow:hidden;margin-bottom:14px;">
+              <div class="order-form-header">
+                <span class="ofh-title">Ambil Pesanan</span>
+                <span class="ofh-ticket" id="of-ticket">#--</span>
+              </div>
+              <div class="cat-bar" id="cat-bar">
+                <button class="cat-btn active" onclick="setCat(this,'Semua')">Semua</button>
+                <button class="cat-btn" onclick="setCat(this,'Makanan')">Makanan</button>
+                <button class="cat-btn" onclick="setCat(this,'Tambahan')">Tambahan</button>
+                <button class="cat-btn" onclick="setCat(this,'Minuman Panas')">☕ Panas</button>
+                <button class="cat-btn" onclick="setCat(this,'Minuman Sejuk')">🧊 Sejuk</button>
+              </div>
+              <div class="menu-scroll" id="menu-scroll"></div>
+              <div class="divider"></div>
+              <div class="cart-preview" id="cart-preview"></div>
+              <div class="pay-method-section" id="pay-method-section" style="display:none;">
+                <div class="pms-label">KAEDAH BAYARAN</div>
+                <div class="pm-chips" id="pm-chips"></div>
+              </div>
+              <div class="form-footer">
+                <textarea class="order-note" id="order-note" rows="2" placeholder="Nota: kurang pedas, tiada bawang…"></textarea>
+                <button class="btn btn-amber" onclick="submitOrder()">✅ Sahkan &amp; Terima Bayaran →</button>
+                <button class="btn btn-outline" style="font-size:13px;" onclick="cancelOrderForm()">Batal</button>
+              </div>
+            </div>
+          </div>
+          <div class="active-orders-section" id="active-orders-section"></div>
+        </div>
+      </div>
+
+      <div id="staff-tab-payments" class="staff-panel hidden">
+        <div class="content" id="sp-payments-content"></div>
+      </div>
+      <div id="staff-tab-stats" class="staff-panel hidden">
+        <div class="content" id="sp-stats-content"></div>
+      </div>
+      <div id="staff-tab-menu" class="staff-panel hidden">
+        <div class="content" id="sp-menu-content"></div>
+      </div>
+      <div id="staff-tab-settings" class="staff-panel hidden">
+        <div class="content" id="sp-settings-content"></div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab-item active" id="stab-home" onclick="staffTab('home')">
+        <span class="tab-icon">🎫</span>Pesanan
+      </div>
+      <div class="tab-item" id="stab-payments" onclick="staffTab('payments')">
+        <span class="tab-icon">💰</span>Semak
+        <span class="pay-dot" id="pay-dot"></span>
+      </div>
+      <div class="tab-item" id="stab-stats" onclick="staffTab('stats')">
+        <span class="tab-icon">📊</span>Jualan
+      </div>
+      <div class="tab-item" id="stab-menu" onclick="staffTab('menu')">
+        <span class="tab-icon">🍽️</span>Menu
+      </div>
+      <div class="tab-item" id="stab-settings" onclick="staffTab('settings')">
+        <span class="tab-icon">⚙️</span>Tetapan
+      </div>
+    </div>
+  </div>
+
+  <!-- KITCHEN SCREEN -->
+  <div class="screen" id="screen-kitchen">
+    <div class="scroll-area">
+      <div class="content-kitchen">
+        <button class="k-refresh-btn" onclick="renderKitchen()">🔄 Muat Semula</button>
+        <div id="kitchen-list"></div>
+        <div class="copy-footer">© ChanJX · +60-18 781 1293</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════
+// MENU DATA
+// ═══════════════════════════════
+let MENU=[
+  {id:'M01',name:'Ayam Penyet',price:11.00,cat:'Makanan'},
+  {id:'M02',name:'Nasi Goreng Kampung',price:9.00,cat:'Makanan'},
+  {id:'M03',name:'Nasi Goreng',price:8.00,cat:'Makanan'},
+  {id:'M04',name:'Nasi Bujang',price:8.00,cat:'Makanan'},
+  {id:'M05',name:'Indo Mie Goreng',price:8.00,cat:'Makanan'},
+  {id:'M06',name:'Mie Goreng',price:8.00,cat:'Makanan'},
+  {id:'M07',name:'Mie Rebus',price:6.00,cat:'Makanan'},
+  {id:'M08',name:'Mieso',price:6.50,cat:'Makanan'},
+  {id:'M09',name:'Bakso',price:7.00,cat:'Makanan'},
+  {id:'M10',name:'Mieso Bakso',price:8.00,cat:'Makanan'},
+  {id:'M11',name:'Pop Mie',price:4.00,cat:'Makanan'},
+  {id:'T01',name:'Nasi',price:2.00,cat:'Tambahan'},
+  {id:'T02',name:'Ayam Goreng',price:5.00,cat:'Tambahan'},
+  {id:'T03',name:'Telur',price:1.50,cat:'Tambahan'},
+  {id:'A01',name:'Teh O',price:2.00,cat:'Minuman Panas'},
+  {id:'A02',name:'Teh Susu',price:2.50,cat:'Minuman Panas'},
+  {id:'A03',name:'Kopi O',price:2.00,cat:'Minuman Panas'},
+  {id:'A04',name:'Kopi Susu',price:2.50,cat:'Minuman Panas'},
+  {id:'A05',name:'Milo',price:3.20,cat:'Minuman Panas'},
+  {id:'A06',name:'Cappucino',price:3.20,cat:'Minuman Panas'},
+  {id:'A07',name:'Nescafe',price:3.20,cat:'Minuman Panas'},
+  {id:'A08',name:'Neslo',price:4.00,cat:'Minuman Panas'},
+  {id:'A09',name:'Susu',price:2.50,cat:'Minuman Panas'},
+  {id:'A10',name:'Sirap',price:2.00,cat:'Minuman Panas'},
+  {id:'A11',name:'Sirap Susu',price:2.50,cat:'Minuman Panas'},
+  {id:'A12',name:'Limau',price:2.50,cat:'Minuman Panas'},
+  {id:'A13',name:'Teh O Limau',price:2.50,cat:'Minuman Panas'},
+  {id:'A14',name:'Sirap Limau',price:2.50,cat:'Minuman Panas'},
+  {id:'A15',name:'Sunkist',price:null,cat:'Minuman Panas'},
+  {id:'A16',name:'Ice Kosong',price:0.50,cat:'Minuman Panas'},
+  {id:'B01',name:'Teh O',price:2.50,cat:'Minuman Sejuk'},
+  {id:'B02',name:'Teh Susu',price:3.00,cat:'Minuman Sejuk'},
+  {id:'B03',name:'Kopi O',price:2.50,cat:'Minuman Sejuk'},
+  {id:'B04',name:'Kopi Susu',price:3.00,cat:'Minuman Sejuk'},
+  {id:'B05',name:'Milo',price:3.70,cat:'Minuman Sejuk'},
+  {id:'B06',name:'Cappucino',price:3.70,cat:'Minuman Sejuk'},
+  {id:'B07',name:'Nescafe',price:3.70,cat:'Minuman Sejuk'},
+  {id:'B08',name:'Neslo',price:4.50,cat:'Minuman Sejuk'},
+  {id:'B09',name:'Susu',price:3.00,cat:'Minuman Sejuk'},
+  {id:'B10',name:'Sirap',price:2.50,cat:'Minuman Sejuk'},
+  {id:'B11',name:'Sirap Susu',price:3.00,cat:'Minuman Sejuk'},
+  {id:'B12',name:'Limau',price:3.00,cat:'Minuman Sejuk'},
+  {id:'B13',name:'Teh O Limau',price:3.00,cat:'Minuman Sejuk'},
+  {id:'B14',name:'Sirap Limau',price:3.00,cat:'Minuman Sejuk'},
+  {id:'B15',name:'Sunkist',price:3.50,cat:'Minuman Sejuk'},
+];
+
+let S={
+  nextTicket:1,currentTicket:null,orders:{},nextId:1001,
+  payMethods:[
+    {id:'cash',name:'Tunai / Cash',icon:'💵',enabled:true,builtin:true},
+    {id:'tng',name:"Touch 'n Go",icon:'📱',enabled:true,builtin:true},
+    {id:'qr',name:'QR / Online',icon:'🔲',enabled:true,builtin:true},
+  ],
+  waiter:{cart:{},cat:'Semua',selectedMethod:'cash'},
+  currentRole:null,
+};
+
+// ═══════════════════════════════
+// PERSISTENCE (localStorage)
+// ═══════════════════════════════
+const STORAGE_KEY='kantin_state_v2';
+function saveState(){
+  try{
+    const data={
+      nextTicket:S.nextTicket,nextId:S.nextId,
+      orders:S.orders,payMethods:S.payMethods
+    };
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  }catch(e){console.warn('Save failed',e);}
+}
+function loadState(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw)return;
+    const data=JSON.parse(raw);
+    if(data.nextTicket)S.nextTicket=data.nextTicket;
+    if(data.nextId)S.nextId=data.nextId;
+    if(data.orders)S.orders=data.orders;
+    if(data.payMethods&&data.payMethods.length)S.payMethods=data.payMethods;
+  }catch(e){console.warn('Load failed',e);}
+}
+
+function fmt(n){return n<10?'0'+n:String(n);}
+function now(){return new Date().toLocaleTimeString('ms',{hour:'2-digit',minute:'2-digit'});}
+
+// ═══════════════════════════════
+// PWA INSTALL
+// ═══════════════════════════════
+let deferredPrompt=null;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;
+const isStandalone=window.matchMedia('(display-mode:standalone)').matches||window.navigator.standalone;
+
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  if(!isStandalone&&!localStorage.getItem('install_dismissed')){
+    showInstallBanner();
+  }
+});
+
+function showInstallBanner(){
+  const banner=document.getElementById('install-banner');
+  banner.classList.add('show');
+  if(isIOS){
+    document.getElementById('install-btn').classList.add('hidden');
+    document.getElementById('ios-hint').classList.remove('hidden');
+  }
+}
+function dismissInstall(){
+  document.getElementById('install-banner').classList.remove('show');
+  localStorage.setItem('install_dismissed','1');
+}
+async function installPWA(){
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  const{outcome}=await deferredPrompt.userChoice;
+  deferredPrompt=null;
+  document.getElementById('install-banner').classList.remove('show');
+}
+
+function showPWAStatus(){
+  const wrap=document.getElementById('pwa-status-wrap');
+  if(isStandalone){
+    wrap.innerHTML='<div class="pwa-status">✅ APP Diinstall · Mod Offline Aktif</div>';
+  } else if(isIOS&&!isStandalone){
+    wrap.innerHTML='<div class="pwa-status" style="background:#FEF9E7;color:#9A7D0A;cursor:pointer;" onclick="showInstallBanner()">📲 Tekan untuk install ke Home Screen</div>';
+  }
+}
+
+// ═══════════════════════════════
+// APP LOGIC
+// ═══════════════════════════════
+function enter(role){
+  S.currentRole=role;
+  document.getElementById('role-picker').style.display='none';
+  document.getElementById('app-shell').style.display='flex';
+  document.getElementById('tb-title').textContent=role==='staff'?'Admin · Kantin Terminal Ferry':'Dapur · Kantin Terminal Ferry';
+  const b=document.getElementById('role-badge');
+  b.textContent=role==='staff'?'Admin':'Dapur';
+  b.className='role-badge '+(role==='staff'?'rb-staff':'rb-kitchen');
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+role).classList.add('active');
+  if(role==='staff') staffTab('home');
+  if(role==='kitchen') renderKitchen();
+}
+function goBack(){
+  document.getElementById('role-picker').style.display='flex';
+  document.getElementById('app-shell').style.display='none';
+  cancelOrderForm(true);
+}
+
+function staffTab(tab){
+  document.querySelectorAll('.staff-panel').forEach(p=>p.classList.add('hidden'));
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.getElementById('staff-tab-'+tab).classList.remove('hidden');
+  document.getElementById('stab-'+tab).classList.add('active');
+  if(tab==='home') renderHome();
+  if(tab==='payments') renderPayments();
+  if(tab==='stats') renderStats();
+  if(tab==='menu') renderMenuManager();
+  if(tab==='settings') renderSettings();
+  updatePayDot();
+}
+function updatePayDot(){
+  const n=Object.values(S.orders).filter(o=>o.status==='paid'||o.status==='ready').length;
+  document.getElementById('pay-dot').classList.toggle('show',n>0);
+}
+
+function issueTicket(){
+  if(S.currentTicket!==null&&Object.keys(S.waiter.cart).length>0){
+    if(!confirm('Troli semasa belum diserahkan. Tiket baru akan kosongkan troli. Teruskan?'))return;
+  }
+  const num=S.nextTicket++;
+  S.currentTicket=num;
+  S.waiter={cart:{},cat:'Semua',selectedMethod:S.payMethods.find(m=>m.enabled)?.id||'cash'};
+  document.getElementById('banner-num').textContent='#'+fmt(num);
+  document.getElementById('of-ticket').textContent='#'+fmt(num);
+  document.getElementById('order-form-wrap').classList.remove('hidden');
+  renderMenuItems();renderPayMethodChips();
+  document.getElementById('order-form-wrap').scrollIntoView({behavior:'smooth'});
+  saveState();
+}
+function cancelOrderForm(silent){
+  S.waiter={cart:{},cat:'Semua',selectedMethod:S.payMethods.find(m=>m.enabled)?.id||'cash'};
+  document.getElementById('order-form-wrap').classList.add('hidden');
+  if(!silent&&document.getElementById('order-note'))document.getElementById('order-note').value='';
+  renderActiveOrders();
+}
+
+function renderHome(){
+  document.getElementById('banner-num').textContent=S.currentTicket!==null?'#'+fmt(S.currentTicket):'--';
+  renderActiveOrders();
+}
+function renderActiveOrders(){
+  const wrap=document.getElementById('active-orders-section');
+  const active=Object.values(S.orders).filter(o=>o.status!=='served_confirmed').sort((a,b)=>a.id-b.id);
+  if(!active.length){wrap.innerHTML='';return;}
+  const sLabel={paid:'Di Dapur',ready:'Siap · Tunggu Ambil',served_confirmed:'Selesai'};
+  const sCls={paid:'badge-preparing',ready:'badge-ready',served_confirmed:'badge-paid'};
+  let html='<div class="section-label" style="margin-bottom:8px;">Pesanan Aktif · '+active.length+'</div>';
+  active.forEach(o=>{
+    const items=o.items.map(i=>i.id+'×'+i.qty).join(' · ');
+    const m=S.payMethods.find(p=>p.id===o.payMethod)||{icon:'💳',name:o.payMethod};
+    html+=`<div class="order-chip">
+      <div class="oc-num">#${fmt(o.ticketNum)}</div>
+      <div class="oc-info">
+        <div class="oc-name">${items}</div>
+        <div class="oc-sub">#${o.id} · ${o.time} · RM ${o.total.toFixed(2)} · ${m.icon} ${m.name}</div>
+      </div>
+      <div class="oc-actions"><span class="badge ${sCls[o.status]}">${sLabel[o.status]}</span></div>
+    </div>`;
+  });
+  wrap.innerHTML=html;
+}
+
+function setCat(el,cat){
+  document.querySelectorAll('#cat-bar .cat-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');S.waiter.cat=cat;renderMenuItems();
+}
+function renderMenuItems(){
+  const items=S.waiter.cat==='Semua'?MENU:MENU.filter(m=>m.cat===S.waiter.cat);
+  const wrap=document.getElementById('menu-scroll');wrap.innerHTML='';
+  items.forEach(item=>{
+    const qty=S.waiter.cart[item.id]||0;
+    const d=document.createElement('div');d.className='menu-row';
+    d.innerHTML=`<div class="mr-code">${item.id}</div>
+    <div class="mr-info"><div class="mr-name">${item.name}</div><div class="mr-sub">${item.cat}</div></div>
+    <div class="mr-price">${item.price!=null?'RM '+item.price.toFixed(2):'—'}</div>
+    ${qty===0
+      ?`<button class="qc-btn plus" onclick="waiterAdd('${item.id}')">+</button>`
+      :`<div class="qc"><button class="qc-btn" onclick="waiterRm('${item.id}')">−</button><span class="qc-val">${qty}</span><button class="qc-btn plus" onclick="waiterAdd('${item.id}')">+</button></div>`}`;
+    wrap.appendChild(d);
+  });
+  renderCartPreview();
+}
+function waiterAdd(id){S.waiter.cart[id]=(S.waiter.cart[id]||0)+1;renderMenuItems();}
+function waiterRm(id){if(S.waiter.cart[id]>1)S.waiter.cart[id]--;else delete S.waiter.cart[id];renderMenuItems();}
+function cartTotal(){return Object.entries(S.waiter.cart).reduce((s,[id,q])=>{const m=MENU.find(m=>m.id===id);return s+(m&&m.price!=null?m.price*q:0);},0);}
+function renderCartPreview(){
+  const entries=Object.entries(S.waiter.cart);
+  const wrap=document.getElementById('cart-preview');
+  const pmSec=document.getElementById('pay-method-section');
+  if(!entries.length){wrap.innerHTML='';pmSec.style.display='none';return;}
+  let html='';
+  entries.forEach(([id,q])=>{const m=MENU.find(m=>m.id===id);html+=`<div class="cp-row"><span class="name">[${id}] ${m?m.name:id} ×${q}</span><span>${m&&m.price!=null?'RM '+(m.price*q).toFixed(2):'—'}</span></div>`;});
+  html+=`<div class="cp-total"><span class="label">JUMLAH</span><span class="amt">RM ${cartTotal().toFixed(2)}</span></div>`;
+  wrap.innerHTML=html;pmSec.style.display='block';renderPayMethodChips();
+}
+function renderPayMethodChips(){
+  const wrap=document.getElementById('pm-chips');if(!wrap)return;
+  wrap.innerHTML=S.payMethods.filter(m=>m.enabled).map(m=>`<div class="pm-chip ${S.waiter.selectedMethod===m.id?'selected':''}" onclick="selectMethod('${m.id}',this)">${m.icon} ${m.name}</div>`).join('');
+}
+function selectMethod(mid,el){
+  S.waiter.selectedMethod=mid;
+  document.querySelectorAll('#pm-chips .pm-chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function submitOrder(){
+  if(!Object.keys(S.waiter.cart).length){alert('Sila pilih item dahulu!');return;}
+  const method=S.waiter.selectedMethod||S.payMethods.find(m=>m.enabled)?.id||'cash';
+  const num=S.currentTicket;
+  const items=Object.entries(S.waiter.cart).map(([id,qty])=>({...MENU.find(m=>m.id===id),qty}));
+  const note=document.getElementById('order-note').value.trim();
+  const oid=S.nextId++;
+  S.orders[oid]={id:oid,ticketNum:num,items,note,total:cartTotal(),status:'paid',payMethod:method,time:now()};
+  cancelOrderForm();renderActiveOrders();updatePayDot();
+  saveState();
+  showToast('✅ Bayaran diterima · Pesanan #'+oid+' dihantar ke dapur');
+}
+
+function renderPayments(){
+  const wrap=document.getElementById('sp-payments-content');
+  const all=Object.values(S.orders).filter(o=>o.status==='paid'||o.status==='ready').sort((a,b)=>a.id-b.id);
+  if(!all.length){wrap.innerHTML='<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Tiada pesanan aktif</div></div>';return;}
+  const sLabel={paid:'Di Dapur',ready:'Siap Ambil'};
+  const sCls={paid:'badge-preparing',ready:'badge-ready'};
+  wrap.innerHTML='<div class="section-label" style="margin-bottom:10px;">Dalam Proses · '+all.length+'</div>'+
+  all.map(o=>{
+    const m=S.payMethods.find(p=>p.id===o.payMethod)||{name:o.payMethod,icon:'💳'};
+    const itemsHtml=o.items.map(i=>`<div class="cp-row-sm"><span class="n">[${i.id}] ${i.name} ×${i.qty}</span><span>${i.price!=null?'RM '+(i.price*i.qty).toFixed(2):'—'}</span></div>`).join('');
+    return `<div class="pay-confirm-card">
+      <div class="pcc-head">
+        <div class="pcc-num">#${fmt(o.ticketNum)}</div>
+        <div class="pcc-info"><div style="font-size:13px;font-weight:700;">Pesanan #${o.id}</div><div class="pcc-oid">${o.time}</div></div>
+        <span class="badge ${sCls[o.status]}">${sLabel[o.status]}</span>
+      </div>
+      <div class="pcc-items">${itemsHtml}${o.note?`<div style="font-size:11px;color:var(--amber);margin-top:5px;">📝 ${o.note}</div>`:''}</div>
+      <div class="pcc-total-row"><span class="pcc-method">${m.icon} ${m.name}</span><span class="pcc-total">RM ${o.total.toFixed(2)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderKitchen(){
+  const list=document.getElementById('kitchen-list');
+  const orders=Object.values(S.orders).filter(o=>o.status==='paid'||o.status==='ready').sort((a,b)=>a.id-b.id);
+  if(!orders.length){list.innerHTML='<div class="empty"><div class="empty-icon">🍳</div><div class="empty-text">Tiada pesanan baharu</div></div>';return;}
+  list.innerHTML=orders.map(o=>{
+    const itemsHtml=o.items.map(i=>`<div class="kc-item"><span class="kc-code">${i.id}</span> ${i.name} ×${i.qty}</div>`).join('');
+    return `<div class="k-card k-${o.status}">
+      <div class="kc-head">
+        <div class="kc-num">#${fmt(o.ticketNum)}</div>
+        <div class="kc-time">${o.time} · Pesanan #${o.id}</div>
+        <span class="k-pay-badge">✓ Bayar</span>
+      </div>
+      <div class="kc-body">${itemsHtml}${o.note?`<div class="kc-note">📝 ${o.note}</div>`:''}</div>
+      <div class="kc-foot">
+        ${o.status==='paid'
+          ?`<button class="btn btn-green btn-sm" onclick="kitchenReady(${o.id})">✅ Siap · Sedia Ambil</button>`
+          :`<button class="btn btn-amber btn-sm" onclick="kitchenServed(${o.id})">🍽️ Dah Serah ke Pelanggan</button>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+function kitchenReady(id){S.orders[id].status='ready';renderKitchen();saveState();showToast('Pesanan #'+id+' siap!');}
+function kitchenServed(id){S.orders[id].status='served_confirmed';renderKitchen();renderHome();updatePayDot();saveState();}
+
+function renderStats(){
+  const all=Object.values(S.orders);
+  const done=all.filter(o=>o.status==='served_confirmed');
+  const active=all.filter(o=>o.status!=='served_confirmed');
+  const rev=all.filter(o=>o.status!=='pending').reduce((s,o)=>s+o.total,0);
+  const wrap=document.getElementById('sp-stats-content');
+  const byMethod=S.payMethods.map(m=>{
+    const ords=all.filter(o=>o.payMethod===m.id);
+    const tot=ords.reduce((s,o)=>s+o.total,0);
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);">
+      <span style="font-size:22px;">${m.icon}</span>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:700;">${m.name}</div><div style="font-size:11px;color:var(--muted);">${ords.length} pesanan</div></div>
+      <div style="font-size:15px;font-weight:800;color:var(--amber);">RM ${tot.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+  wrap.innerHTML=`<div class="stats-grid">
+    <div class="stat-card"><div class="sc-val">${done.length}</div><div class="sc-lbl">Pesanan Selesai</div></div>
+    <div class="stat-card"><div class="sc-val">${active.length}</div><div class="sc-lbl">Sedang Diproses</div></div>
+    <div class="stat-card"><div class="sc-val">#${fmt(S.nextTicket-1)}</div><div class="sc-lbl">Tiket Terakhir</div></div>
+    <div class="stat-card"><div class="sc-val">RM ${rev.toFixed(0)}</div><div class="sc-lbl">Jualan Hari Ini</div></div>
+  </div>
+  <div class="section-label" style="margin-bottom:8px;">Mengikut Kaedah Bayaran</div>${byMethod}
+  <div class="copy-footer">© ChanJX · +60-18 781 1293</div>`;
+}
+
+function renderMenuManager(){
+  const wrap=document.getElementById('sp-menu-content');
+  const cats=['Makanan','Tambahan','Minuman Panas','Minuman Sejuk'];
+  let catSections=cats.map(cat=>{
+    const items=MENU.filter(m=>m.cat===cat);
+    const rows=items.map(item=>`<div class="mm-row">
+      <div class="mm-code">${item.id}</div>
+      <div class="mm-info"><h4>${item.name}</h4><p>${item.cat}</p></div>
+      <div class="mm-price">${item.price!=null?'RM '+item.price.toFixed(2):'—'}</div>
+      <button class="del-btn" onclick="deleteMenuItem('${item.id}')">×</button>
+    </div>`).join('');
+    return `<div style="margin-bottom:8px;"><div class="section-label" style="margin-bottom:6px;">${cat} (${items.length})</div><div class="card" style="padding:10px 14px;">${rows||'<div style="font-size:12px;color:var(--muted);padding:8px 0;">Tiada item</div>'}</div></div>`;
+  }).join('');
+  wrap.innerHTML=catSections+`<div class="card" style="padding:14px;margin-top:8px;">
+    <div class="section-label" style="margin-bottom:10px;">Tambah Item Baru</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="form-grid3">
+        <input class="field" id="ni-id" placeholder="Kod" />
+        <input class="field" id="ni-name" placeholder="Nama item *" />
+        <input class="field" id="ni-price" type="number" step="0.50" min="0" placeholder="Harga" />
+      </div>
+      <select class="field" id="ni-cat"><option>Makanan</option><option>Tambahan</option><option>Minuman Panas</option><option>Minuman Sejuk</option></select>
+      <button class="btn btn-amber" onclick="addMenuItem()">+ Tambah</button>
+    </div>
+  </div><div class="copy-footer">© ChanJX · +60-18 781 1293</div>`;
+}
+function addMenuItem(){
+  const id=document.getElementById('ni-id').value.trim().toUpperCase()||'X'+Date.now();
+  const name=document.getElementById('ni-name').value.trim();
+  const cat=document.getElementById('ni-cat').value;
+  const pv=document.getElementById('ni-price').value;
+  const price=pv?parseFloat(pv):null;
+  if(!name){alert('Sila isi nama item!');return;}
+  if(MENU.find(m=>m.id===id)){alert('Kod '+id+' sudah wujud!');return;}
+  MENU.push({id,name,price,cat});renderMenuManager();showToast('✅ '+id+' '+name+' ditambah');
+}
+function deleteMenuItem(id){
+  if(!confirm('Padam item '+id+'?'))return;
+  const idx=MENU.findIndex(m=>m.id===id);if(idx>-1)MENU.splice(idx,1);renderMenuManager();
+}
+
+function renderSettings(){
+  const wrap=document.getElementById('sp-settings-content');
+  const pmRows=S.payMethods.map(m=>`<div class="pm-row">
+    <span style="font-size:20px;">${m.icon}</span>
+    <span style="flex:1;font-size:13px;font-weight:600;">${m.name}</span>
+    <label class="toggle"><input type="checkbox" ${m.enabled?'checked':''} onchange="togglePM('${m.id}',this.checked)"><span class="tslider"></span></label>
+    ${!m.builtin?`<button class="del-btn" onclick="deletePM('${m.id}')">×</button>`:''}
+  </div>`).join('');
+  wrap.innerHTML=`<div class="card" style="padding:14px;margin-bottom:12px;">
+    <div class="section-label" style="margin-bottom:10px;">Kaedah Bayaran</div>${pmRows}
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <input class="field" id="npm-icon" placeholder="Ikon" style="width:54px;text-align:center;" />
+      <input class="field" id="npm-name" placeholder="Nama kaedah bayaran" style="flex:1;" />
+      <button class="btn btn-amber btn-sm" onclick="addPM()">+</button>
+    </div>
+  </div>
+  <div class="danger-zone">
+    <div class="dz-title">⚠️ Reset Harian</div>
+    <div class="dz-desc">Reset semua tiket dan rekod pesanan. Nombor tiket bermula semula dari 01. Gunakan ini setiap hari baharu.</div>
+    <button class="btn btn-red" onclick="dailyReset()">Sahkan Reset (Hari Baharu)</button>
+  </div>
+  <div class="copy-footer">© ChanJX · +60-18 781 1293</div>`;
+}
+function togglePM(id,val){const m=S.payMethods.find(p=>p.id===id);if(m){m.enabled=val;saveState();}}
+function addPM(){
+  const icon=document.getElementById('npm-icon').value.trim()||'💳';
+  const name=document.getElementById('npm-name').value.trim();
+  if(!name){alert('Sila isi nama!');return;}
+  S.payMethods.push({id:'c_'+Date.now(),name,icon,enabled:true,builtin:false});
+  renderSettings();saveState();
+}
+function deletePM(id){S.payMethods=S.payMethods.filter(p=>p.id!==id);renderSettings();saveState();}
+function dailyReset(){
+  if(!confirm('Reset semua tiket dan pesanan? Tindakan ini tidak boleh dibatalkan.'))return;
+  S.orders={};S.nextId=1001;S.nextTicket=1;S.currentTicket=null;
+  S.waiter={cart:{},cat:'Semua',selectedMethod:S.payMethods.find(m=>m.enabled)?.id||'cash'};
+  document.getElementById('order-form-wrap').classList.add('hidden');
+  document.getElementById('banner-num').textContent='--';
+  renderHome();renderSettings();saveState();
+  showToast('✅ Reset berjaya! Sedia untuk hari baharu.');
+}
+
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';Object.assign(t.style,{position:'fixed',bottom:'calc(var(--sab, 0px) + 80px)',left:'50%',transform:'translateX(-50%)',background:'#4A0E0E',color:'#F5B7B1',padding:'11px 22px',borderRadius:'30px',fontSize:'13px',fontWeight:'600',zIndex:'9999',whiteSpace:'nowrap',boxShadow:'0 4px 20px rgba(0,0,0,.3)',transition:'opacity .3s',maxWidth:'90vw',textAlign:'center'});document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';
+  clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',2800);
+}
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  loadState();
+  showPWAStatus();
+  // Show install hint for iOS after a short delay
+  if(isIOS&&!isStandalone&&!localStorage.getItem('install_dismissed')){
+    setTimeout(()=>showInstallBanner(),2000);
+  }
+});
+
+// ═══════════════════════════════
+// SERVICE WORKER
+// ═══════════════════════════════
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js')
+      .then(r=>console.log('SW registered:',r.scope))
+      .catch(e=>console.log('SW error:',e));
+  });
+}
+
+// Prevent double-tap zoom on iOS
+let lastTap=0;
+document.addEventListener('touchend',e=>{
+  const n=Date.now();
+  if(n-lastTap<300)e.preventDefault();
+  lastTap=n;},{passive:false});
+</script>
+</body>
+</html>
