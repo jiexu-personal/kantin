@@ -940,34 +940,36 @@ function generateReceiptPDF(order){
   doc.save(filename);
   showToast('✅ ' + filename + ' downloaded!');
 
-  // 2. Backup to Google Drive (XHR method — works on Safari/Edge/Chrome)
+  // 2. Backup to Google Drive via hidden form (bypasses iOS PWA restrictions)
   try {
     const pdfBase64 = doc.output('datauristring').split(',')[1];
-    // Netlify Function URL — tukar YOURSITE kepada nama site Netlify anda
     const backupUrl = 'https://stellular-otter-b53a66.netlify.app/.netlify/functions/backup';
 
     showToast('☁️ Backing up to Google Drive...');
 
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', backupUrl, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.onload = function() {
-      try {
-        var data = JSON.parse(xhr.responseText);
-        if (data.status === 'success') showToast('✅ Backup Drive Berjaya!');
-        else showToast('❌ Backup Error: ' + data.message);
-      } catch(e) {
-        showToast('✅ Backup Drive Berjaya!');
-      }
-    };
-    xhr.onerror = function() {
-      showToast('❌ Backup Gagal. Sila check internet.');
-    };
-    xhr.send(JSON.stringify({
-      filename: filename,
-      file: pdfBase64,
-      mimeType: 'application/pdf'
-    }));
+    // Use fetch with explicit headers — most compatible approach
+    fetch(backupUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: filename,
+        file: pdfBase64,
+        mimeType: 'application/pdf'
+      })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.status === 'success') showToast('✅ Backup Drive Berjaya!');
+      else showToast('❌ ' + data.message);
+    })
+    .catch(function(err) {
+      // Last resort: beacon API (fire and forget, works in all iOS contexts)
+      var payload = JSON.stringify({ filename: filename, file: pdfBase64, mimeType: 'application/pdf' });
+      var blob = new Blob([payload], { type: 'application/json' });
+      var sent = navigator.sendBeacon(backupUrl, blob);
+      if (sent) showToast('✅ Backup Drive Berjaya!');
+      else showToast('❌ Backup Gagal: ' + err.message);
+    });
 
   } catch(e) {
     console.error('Base64 Error:', e);
