@@ -943,20 +943,20 @@ function generateReceiptPDF(order){
   // 2. Backup to Google Drive (XHR method — works on Safari/Edge/Chrome)
   try {
     const pdfBase64 = doc.output('datauristring').split(',')[1];
-    const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbxBI8tJ5LU39mh9uQEs5D4LTs6cDysw4XtfwZhRCBJ0IWxByMxXVQ9xSGBd6_XuX2Wt/exec';
+    // Netlify Function URL — tukar YOURSITE kepada nama site Netlify anda
+    const backupUrl = 'https://stellular-otter-b53a66.netlify.app/.netlify/functions/backup';
 
     showToast('☁️ Backing up to Google Drive...');
 
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', googleScriptUrl, true);
-    xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+    xhr.open('POST', backupUrl, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.onload = function() {
       try {
         var data = JSON.parse(xhr.responseText);
         if (data.status === 'success') showToast('✅ Backup Drive Berjaya!');
         else showToast('❌ Backup Error: ' + data.message);
       } catch(e) {
-        // Apps Script redirect — request still went through
         showToast('✅ Backup Drive Berjaya!');
       }
     };
