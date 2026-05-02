@@ -806,7 +806,7 @@ function exportAllReceiptsCSV(){
 }
 
 // ═══════════════════════════════
-// PDF RECEIPT GENERATOR — Thermal Printer Ready
+// PDF RECEIPT GENERATOR — Thermal Printer + Google Drive Ready
 // ═══════════════════════════════
 function generateReceiptPDF(order){
   if(!order){showToast('❌ Data pesanan tidak dijumpai.');return;}
@@ -817,15 +817,11 @@ function generateReceiptPDF(order){
   }
   const {jsPDF}=window.jspdf;
 
-  // ── 配置纸张尺寸 ─────────────────────────────────
-  // 默认使用 80mm (商场常规尺寸)。如果是小型便携打印机，请把 W 改为 58。
-  const W = 80;        // 纸张宽度：80mm 或 58mm
-  const mg = 5;        // 左右边距 (Margin)
-  const cw = W-mg*2;   // 实际可打印内容宽度
-  const LINE = 4.5;    // 行高
-  const DASH = '- - - - - - - - - - - - - - - - - - - - - - - - - -';
+  const W = 80;        
+  const mg = 5;        
+  const cw = W-mg*2;   
+  const LINE = 4.5;    
 
-  // ── Helper: draw a dashed separator ───────────────
   function dashedLine(){
     doc.setDrawColor(180,178,169);doc.setLineWidth(0.15);
     doc.setLineDashPattern([1,1],0);
@@ -834,13 +830,11 @@ function generateReceiptPDF(order){
     y+=3;
   }
 
-  // ── Helper: solid line ─────────────────────────────
   function solidLine(color){
     doc.setDrawColor(...(color||[0,0,0]));doc.setLineWidth(0.3);
     doc.line(mg,y,W-mg,y);y+=3;
   }
 
-  // ── Helper: centered text ──────────────────────────
   function ctext(txt,size,bold,color){
     doc.setFontSize(size||9);
     doc.setFont('helvetica',bold?'bold':'normal');
@@ -849,7 +843,6 @@ function generateReceiptPDF(order){
     y+=LINE*(size&&size>9?1.2:1);
   }
 
-  // ── Helper: left+right row ─────────────────────────
   function lrtext(left,right,size,boldRight){
     doc.setFontSize(size||9);
     doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
@@ -859,37 +852,20 @@ function generateReceiptPDF(order){
     y+=LINE;
   }
 
-  // ── 动态计算页面高度 ─────────────────────────────
   const estH = 45 + (order.items.length * LINE * 2.5) + 50 + (order.note?10:0) + (S.biz.sstEnabled?8:0);
   const pageH = Math.max(estH, 80);
 
-  const doc=new jsPDF({
-    orientation:'portrait',
-    unit:'mm',
-    format:[W, pageH]
-  });
-
+  const doc=new jsPDF({ orientation:'portrait', unit:'mm', format:[W, pageH] });
   let y=mg+4;
 
-  // ══════════════════════════════════════════════════
-  // HEADER — 店铺信息
-  // ══════════════════════════════════════════════════
-  ctext(S.biz.name, 12, true);
-  y+=1;
+  ctext(S.biz.name, 12, true); y+=1;
   ctext(S.biz.address, 8, false, [80,80,80]);
   ctext('Tel: '+S.biz.tel, 8, false, [80,80,80]);
   if(S.biz.regNo) ctext('SSM: '+S.biz.regNo, 8, false, [80,80,80]);
   if(S.biz.sstEnabled&&S.biz.sstNo) ctext('No. SST: '+S.biz.sstNo, 8, false, [80,80,80]);
 
-  y+=2;
-  dashedLine();
-  y+=1;
-
-  // ══════════════════════════════════════════════════
-  // 收据基本信息
-  // ══════════════════════════════════════════════════
-  ctext('TAX INVOICE / RECEIPT', 9, true);
-  y+=2;
+  y+=2; dashedLine(); y+=1;
+  ctext('TAX INVOICE / RECEIPT', 9, true); y+=2;
 
   doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
   doc.text('Receipt No : '+order.receiptId, mg, y); y+=LINE;
@@ -900,39 +876,28 @@ function generateReceiptPDF(order){
 
   dashedLine();
 
-  // ══════════════════════════════════════════════════
-  // 菜单项目表头
-  // ══════════════════════════════════════════════════
   doc.setFontSize(8);doc.setFont('helvetica','bold');
   doc.text('ITEM', mg, y);
   doc.text('QTY', mg+(cw*0.42), y, {align:'center'});
   doc.text('HARGA', mg+(cw*0.55), y);
   doc.text('JUMLAH', W-mg, y, {align:'right'});
-  y+=LINE-1;
-  dashedLine();
+  y+=LINE-1; dashedLine();
 
-  // ══════════════════════════════════════════════════
-  // 菜单商品列表
-  // ══════════════════════════════════════════════════
   doc.setTextColor(0,0,0);
   order.items.forEach(item=>{
     const unitPrice = item.price!=null ? item.price.toFixed(2) : '—';
     const lineTotal = item.price!=null ? (item.price*item.qty).toFixed(2) : '—';
 
-    // 商品名字（加粗）
     doc.setFontSize(9);doc.setFont('helvetica','bold');
-    doc.text(item.name, mg, y, {maxWidth: cw*0.9});
-    y+=LINE;
+    doc.text(item.name, mg, y, {maxWidth: cw*0.9}); y+=LINE;
 
     doc.setFontSize(8);doc.setFont('helvetica','normal');
     doc.text('['+item.id+']', mg, y);
     doc.text(String(item.qty)+'x', mg+(cw*0.42), y, {align:'center'});
     doc.text(unitPrice, mg+(cw*0.55), y);
-    doc.text(lineTotal, W-mg, y, {align:'right'});
-    y+=LINE+1;
+    doc.text(lineTotal, W-mg, y, {align:'right'}); y+=LINE+1;
   });
 
-  // 备注信息
   if(order.note){
     y+=1;
     doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(100,100,100);
@@ -942,36 +907,21 @@ function generateReceiptPDF(order){
 
   dashedLine();
 
-  // ══════════════════════════════════════════════════
-  // 金额总计
-  // ══════════════════════════════════════════════════
   const subtotal=(order.subtotal||order.total).toFixed(2);
   const sstAmt=(order.sstAmt||0).toFixed(2);
   const grandTotal=order.total.toFixed(2);
 
   lrtext('Subtotal', subtotal, 9, false);
-  if(S.biz.sstEnabled&&order.sstAmt>0){
-    lrtext('SST ('+S.biz.sstRate+'%)', sstAmt, 9, false);
-  }
+  if(S.biz.sstEnabled&&order.sstAmt>0){ lrtext('SST ('+S.biz.sstRate+'%)', sstAmt, 9, false); }
 
-  y+=2;
-  solidLine();
+  y+=2; solidLine();
 
-  // Grand total
   doc.setFontSize(12);doc.setFont('helvetica','bold');
   doc.text('TOTAL', mg, y);
-  doc.text('RM '+grandTotal, W-mg, y, {align:'right'});
-  y+=LINE*1.8;
+  doc.text('RM '+grandTotal, W-mg, y, {align:'right'}); y+=LINE*1.8;
 
-  // ══════════════════════════════════════════════════
-  // FOOTER
-  // ══════════════════════════════════════════════════
-  y+=2;
-  ctext('*** PAID ***', 10, true);
-  y+=3;
-  
-  ctext('Terima kasih! Sila datang lagi.', 9, true);
-  y+=2;
+  y+=2; ctext('*** PAID ***', 10, true); y+=3;
+  ctext('Terima kasih! Sila datang lagi.', 9, true); y+=2;
   
   if(S.biz.sstEnabled){
     doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);
@@ -983,12 +933,39 @@ function generateReceiptPDF(order){
   doc.text('Computer generated receipt.', W/2, y, {align:'center'}); y+=3.5;
   doc.text('Powered by ChanJX · '+fmtDateTime(), W/2, y, {align:'center'});
 
-  // ── Save ──────────────────────────────────────────
+  // ── Save & Backup to Google Drive ─────────────────────────────────
   const filename=order.receiptId+'.pdf';
+  
+  // 1. 本地下载（触发手机端打印）
   doc.save(filename);
   showToast('✅ '+filename+' downloaded!');
-}
 
+  // 2. 转换并后台上传到 Google Drive
+  try {
+    showToast('☁️ Backing up to Google Drive...');
+    const pdfBase64 = doc.output('datauristring').split(',')[1];
+    
+    // ⚠️ 替换为你刚才在 Google Apps Script 拿到的 Web App URL
+    const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbxBI8tJ5LU39mh9uQEs5D4LTs6cDysw4XtfwZhRCBJ0IWxByMxXVQ9xSGBd6_XuX2Wt/exec';
+    
+    fetch(googleScriptUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        filename: filename,
+        file: pdfBase64,
+        mimeType: 'application/pdf'
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if(data.status === 'success') showToast('✅ Backup Drive Berjaya!');
+    })
+    .catch(err => console.error('Drive Backup Error:', err));
+  } catch(e) {
+    console.error('Base64 Error:', e);
+  }
+}
+  
 // ═══════════════════════════════
 // STATS
 // ═══════════════════════════════
