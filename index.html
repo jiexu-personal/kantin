@@ -905,9 +905,9 @@ function generateReceiptPDF(order){
   // ══════════════════════════════════════════════════
   doc.setFontSize(8);doc.setFont('helvetica','bold');
   doc.text('ITEM', mg, y);
-  doc.text('QTY', mg+(cw*0.5), y, {align:'center'});
-  doc.text('PRICE', mg+(cw*0.65), y);
-  doc.text('TOTAL', W-mg, y, {align:'right'});
+  doc.text('QTY', mg+(cw*0.42), y, {align:'center'});
+  doc.text('HARGA', mg+(cw*0.55), y);
+  doc.text('JUMLAH', W-mg, y, {align:'right'});
   y+=LINE-1;
   dashedLine();
 
@@ -924,11 +924,10 @@ function generateReceiptPDF(order){
     doc.text(item.name, mg, y, {maxWidth: cw*0.9});
     y+=LINE;
 
-    // 数量与价格细节
     doc.setFontSize(8);doc.setFont('helvetica','normal');
     doc.text('['+item.id+']', mg, y);
-    doc.text(String(item.qty), mg+(cw*0.5), y, {align:'center'});
-    doc.text(unitPrice, mg+(cw*0.65), y);
+    doc.text(String(item.qty)+'x', mg+(cw*0.42), y, {align:'center'});
+    doc.text(unitPrice, mg+(cw*0.55), y);
     doc.text(lineTotal, W-mg, y, {align:'right'});
     y+=LINE+1;
   });
