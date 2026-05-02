@@ -806,7 +806,7 @@ function exportAllReceiptsCSV(){
 }
 
 // ═══════════════════════════════
-// PDF RECEIPT GENERATOR — 80mm Thermal
+// PDF RECEIPT GENERATOR — Thermal Printer Ready
 // ═══════════════════════════════
 function generateReceiptPDF(order){
   if(!order){showToast('❌ Data pesanan tidak dijumpai.');return;}
@@ -817,12 +817,13 @@ function generateReceiptPDF(order){
   }
   const {jsPDF}=window.jspdf;
 
-  // ── 80mm thermal paper constants ──────────────────
-  const W=80;          // 80mm width — standard thermal receipt
-  const mg=4;          // 4mm side margin (tight like real receipt)
-  const cw=W-mg*2;     // printable width = 72mm
-  const LINE=4.2;      // standard line height
-  const DASH='- - - - - - - - - - - - - - - - - - - -';
+  // ── 配置纸张尺寸 ─────────────────────────────────
+  // 默认使用 80mm (商场常规尺寸)。如果是小型便携打印机，请把 W 改为 58。
+  const W = 80;        // 纸张宽度：80mm 或 58mm
+  const mg = 5;        // 左右边距 (Margin)
+  const cw = W-mg*2;   // 实际可打印内容宽度
+  const LINE = 4.5;    // 行高
+  const DASH = '- - - - - - - - - - - - - - - - - - - - - - - - - -';
 
   // ── Helper: draw a dashed separator ───────────────
   function dashedLine(){
@@ -835,32 +836,31 @@ function generateReceiptPDF(order){
 
   // ── Helper: solid line ─────────────────────────────
   function solidLine(color){
-    doc.setDrawColor(...(color||[44,44,42]));doc.setLineWidth(0.3);
+    doc.setDrawColor(...(color||[0,0,0]));doc.setLineWidth(0.3);
     doc.line(mg,y,W-mg,y);y+=3;
   }
 
   // ── Helper: centered text ──────────────────────────
   function ctext(txt,size,bold,color){
-    doc.setFontSize(size||8);
+    doc.setFontSize(size||9);
     doc.setFont('helvetica',bold?'bold':'normal');
-    doc.setTextColor(...(color||[44,44,42]));
+    doc.setTextColor(...(color||[0,0,0]));
     doc.text(txt,W/2,y,{align:'center',maxWidth:cw});
-    y+=LINE*(size&&size>9?1.4:1);
+    y+=LINE*(size&&size>9?1.2:1);
   }
 
   // ── Helper: left+right row ─────────────────────────
   function lrtext(left,right,size,boldRight){
-    doc.setFontSize(size||8);
-    doc.setFont('helvetica','normal');doc.setTextColor(44,44,42);
+    doc.setFontSize(size||9);
+    doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
     doc.text(String(left),mg,y,{maxWidth:cw*0.65});
     doc.setFont('helvetica',boldRight?'bold':'normal');
     doc.text(String(right),W-mg,y,{align:'right'});
     y+=LINE;
   }
 
-  // ── Calculate dynamic page height ─────────────────
-  // Estimate: header~28 + items*(LINE*2) + totals~20 + footer~20
-  const estH = 30 + (order.items.length * LINE * 2.2) + 40 + (order.note?8:0) + (S.biz.sstEnabled?6:0) + 28;
+  // ── 动态计算页面高度 ─────────────────────────────
+  const estH = 45 + (order.items.length * LINE * 2.5) + 50 + (order.note?10:0) + (S.biz.sstEnabled?8:0);
   const pageH = Math.max(estH, 80);
 
   const doc=new jsPDF({
@@ -869,127 +869,120 @@ function generateReceiptPDF(order){
     format:[W, pageH]
   });
 
-  let y=mg+2;
+  let y=mg+4;
 
   // ══════════════════════════════════════════════════
-  // HEADER — Business Info
+  // HEADER — 店铺信息
   // ══════════════════════════════════════════════════
-  ctext(S.biz.name, 11, true, [44,44,42]);
-  ctext(S.biz.address, 7, false, [100,98,95]);
-  ctext('Tel: '+S.biz.tel, 7, false, [100,98,95]);
-  if(S.biz.regNo) ctext('SSM: '+S.biz.regNo, 7, false, [100,98,95]);
-  if(S.biz.sstEnabled&&S.biz.sstNo) ctext('No. SST: '+S.biz.sstNo, 7, false, [100,98,95]);
-
+  ctext(S.biz.name, 12, true);
   y+=1;
-  solidLine([44,44,42]);
+  ctext(S.biz.address, 8, false, [80,80,80]);
+  ctext('Tel: '+S.biz.tel, 8, false, [80,80,80]);
+  if(S.biz.regNo) ctext('SSM: '+S.biz.regNo, 8, false, [80,80,80]);
+  if(S.biz.sstEnabled&&S.biz.sstNo) ctext('No. SST: '+S.biz.sstNo, 8, false, [80,80,80]);
 
-  // ══════════════════════════════════════════════════
-  // RECEIPT META
-  // ══════════════════════════════════════════════════
-  ctext('RESIT RASMI / OFFICIAL RECEIPT', 8, true, [44,44,42]);
+  y+=2;
+  dashedLine();
   y+=1;
 
-  doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(80,78,76);
-  doc.text('No. Resit  : '+order.receiptId, mg, y); y+=LINE;
-  doc.text('No. Tiket  : #'+fmt(order.ticketNum), mg, y); y+=LINE;
-  doc.text('Tarikh     : '+(order.dateTime||order.time), mg, y); y+=LINE;
+  // ══════════════════════════════════════════════════
+  // 收据基本信息
+  // ══════════════════════════════════════════════════
+  ctext('TAX INVOICE / RECEIPT', 9, true);
+  y+=2;
+
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
+  doc.text('Receipt No : '+order.receiptId, mg, y); y+=LINE;
+  doc.text('Ticket No  : #'+fmt(order.ticketNum), mg, y); y+=LINE;
+  doc.text('Date       : '+(order.dateTime||order.time), mg, y); y+=LINE;
   const meth=S.payMethods.find(p=>p.id===order.payMethod)||{name:order.payMethod};
-  doc.text('Bayaran    : '+meth.name, mg, y); y+=LINE+1;
+  doc.text('Payment    : '+meth.name, mg, y); y+=LINE;
 
   dashedLine();
 
   // ══════════════════════════════════════════════════
-  // COLUMN HEADERS
+  // 菜单项目表头
   // ══════════════════════════════════════════════════
-  doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(120,118,115);
+  doc.setFontSize(8);doc.setFont('helvetica','bold');
   doc.text('ITEM', mg, y);
-  doc.text('QTY', mg+38, y, {align:'center'});
-  doc.text('HARGA', mg+52, y);
-  doc.text('JUMLAH', W-mg, y, {align:'right'});
-  y+=LINE-0.5;
+  doc.text('QTY', mg+(cw*0.5), y, {align:'center'});
+  doc.text('PRICE', mg+(cw*0.65), y);
+  doc.text('TOTAL', W-mg, y, {align:'right'});
+  y+=LINE-1;
   dashedLine();
 
   // ══════════════════════════════════════════════════
-  // ITEMS
+  // 菜单商品列表
   // ══════════════════════════════════════════════════
-  doc.setTextColor(44,44,42);
+  doc.setTextColor(0,0,0);
   order.items.forEach(item=>{
-    const unitPrice = item.price!=null ? 'RM '+item.price.toFixed(2) : '—';
-    const lineTotal = item.price!=null ? 'RM '+(item.price*item.qty).toFixed(2) : '—';
+    const unitPrice = item.price!=null ? item.price.toFixed(2) : '—';
+    const lineTotal = item.price!=null ? (item.price*item.qty).toFixed(2) : '—';
 
-    // Item name line (bold, truncate if needed)
-    doc.setFontSize(8);doc.setFont('helvetica','bold');
-    doc.text(item.name, mg, y, {maxWidth: cw*0.7});
+    // 商品名字（加粗）
+    doc.setFontSize(9);doc.setFont('helvetica','bold');
+    doc.text(item.name, mg, y, {maxWidth: cw*0.9});
     y+=LINE;
 
-    // Code + qty + price + total on second line
-    doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(120,118,115);
+    // 数量与价格细节
+    doc.setFontSize(8);doc.setFont('helvetica','normal');
     doc.text('['+item.id+']', mg, y);
-    doc.setTextColor(44,44,42);
-    doc.text(String(item.qty)+'x', mg+38, y, {align:'center'});
-    doc.text(unitPrice, mg+52, y);
-    doc.setFont('helvetica','bold');
+    doc.text(String(item.qty), mg+(cw*0.5), y, {align:'center'});
+    doc.text(unitPrice, mg+(cw*0.65), y);
     doc.text(lineTotal, W-mg, y, {align:'right'});
-    doc.setFont('helvetica','normal');
-    y+=LINE+0.5;
+    y+=LINE+1;
   });
 
-  // Note
+  // 备注信息
   if(order.note){
     y+=1;
-    doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(160,80,60);
-    doc.text('* '+order.note, mg, y, {maxWidth:cw}); y+=LINE+1;
-    doc.setTextColor(44,44,42);doc.setFont('helvetica','normal');
+    doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(100,100,100);
+    doc.text('* Note: '+order.note, mg, y, {maxWidth:cw}); y+=LINE+1;
+    doc.setTextColor(0,0,0);doc.setFont('helvetica','normal');
   }
 
   dashedLine();
 
   // ══════════════════════════════════════════════════
-  // TOTALS
+  // 金额总计
   // ══════════════════════════════════════════════════
   const subtotal=(order.subtotal||order.total).toFixed(2);
   const sstAmt=(order.sstAmt||0).toFixed(2);
   const grandTotal=order.total.toFixed(2);
 
-  doc.setTextColor(80,78,76);
-  lrtext('Subtotal', 'RM '+subtotal, 8, false);
+  lrtext('Subtotal', subtotal, 9, false);
   if(S.biz.sstEnabled&&order.sstAmt>0){
-    lrtext('SST ('+S.biz.sstRate+'%)', 'RM '+sstAmt, 8, false);
+    lrtext('SST ('+S.biz.sstRate+'%)', sstAmt, 9, false);
   }
 
-  y+=1;
-  solidLine([44,44,42]);
+  y+=2;
+  solidLine();
 
-  // Grand total — big and bold
-  doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(44,44,42);
-  doc.text('JUMLAH', mg, y);
+  // Grand total
+  doc.setFontSize(12);doc.setFont('helvetica','bold');
+  doc.text('TOTAL', mg, y);
   doc.text('RM '+grandTotal, W-mg, y, {align:'right'});
-  y+=LINE*1.6;
-
-  // Paid status badge
-  doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(30,132,73);
-  ctext('*** DIBAYAR / PAID ***', 8, true, [30,132,73]);
-
-  y+=1;
-  solidLine([44,44,42]);
+  y+=LINE*1.8;
 
   // ══════════════════════════════════════════════════
   // FOOTER
   // ══════════════════════════════════════════════════
-  y+=1;
-  ctext('Terima kasih kerana sudi berkunjung!', 8, true, [44,44,42]);
-  ctext('Thank you for your visit!', 7.5, false, [80,78,76]);
   y+=2;
+  ctext('*** PAID ***', 10, true);
+  y+=3;
+  
+  ctext('Terima kasih! Sila datang lagi.', 9, true);
+  y+=2;
+  
   if(S.biz.sstEnabled){
-    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(140,138,135);
+    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);
     doc.text('SST dikenakan mengikut Akta Cukai', W/2, y, {align:'center'}); y+=3.5;
     doc.text('Perkhidmatan dan Jualan 2018.', W/2, y, {align:'center'}); y+=4;
   }
-  doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(160,158,155);
-  doc.text('Resit ini dijana komputer & sah tanpa tandatangan.', W/2, y, {align:'center'}); y+=3.5;
-  doc.text('Computer generated receipt, valid without signature.', W/2, y, {align:'center'}); y+=4;
-  doc.setTextColor(180,178,169);
-  doc.text('Sistem POS oleh ChanJX · '+fmtDateTime(), W/2, y, {align:'center'});
+  
+  doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(150,150,150);
+  doc.text('Computer generated receipt.', W/2, y, {align:'center'}); y+=3.5;
+  doc.text('Powered by ChanJX · '+fmtDateTime(), W/2, y, {align:'center'});
 
   // ── Save ──────────────────────────────────────────
   const filename=order.receiptId+'.pdf';
