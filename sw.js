@@ -2,7 +2,7 @@
 // Service Worker — Kantin Terminal Ferry
 // Version bump here to force cache refresh
 // ═══════════════════════════════
-const CACHE_NAME = 'kantin-v2.0';
+const CACHE_NAME = 'kantin-v3.0';
 const OFFLINE_URLS = [
   './index.html',
   './manifest.json',
