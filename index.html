@@ -934,44 +934,38 @@ function generateReceiptPDF(order){
   doc.text('Powered by ChanJX · '+fmtDateTime(), W/2, y, {align:'center'});
 
   // ── Save & Backup to Google Drive ─────────────────────────────────
-  const filename=order.receiptId+'.pdf';
-  
-  // 1. 本地下载（触发手机端打印）
-  doc.save(filename);
-  showToast('✅ '+filename+' downloaded!');
+  const filename = order.receiptId + '.pdf';
 
-  // 2. 转换并后台上传到 Google Drive
+  // 1. Local download
+  doc.save(filename);
+  showToast('✅ ' + filename + ' downloaded!');
+
+  // 2. Backup to Google Drive (no-cors — works on iOS Safari)
   try {
-    showToast('☁️ Backing up to Google Drive...');
     const pdfBase64 = doc.output('datauristring').split(',')[1];
-    
-    // ⚠️ 替换为你刚才在 Google Apps Script 拿到的 Web App URL
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbxBI8tJ5LU39mh9uQEs5D4LTs6cDysw4XtfwZhRCBJ0IWxByMxXVQ9xSGBd6_XuX2Wt/exec';
-    
+
+    showToast('☁️ Backing up to Google Drive...');
+
     fetch(googleScriptUrl, {
       method: 'POST',
       mode: 'no-cors',
-      // 👇 就是加了下面这三行，把它伪装成普通文本
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8'
-      },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         filename: filename,
         file: pdfBase64,
         mimeType: 'application/pdf'
       })
     })
-    .then(res => res.json())
-    .then(data => {
-      if(data.status === 'success') showToast('✅ Backup Drive Berjaya!');
-      else showToast('❌ Backup Error: ' + data.message);
+    .then(function() {
+      showToast('✅ Backup Drive Berjaya!');
     })
-    .catch(err => {
+    .catch(function(err) {
       console.error('Drive Backup Error:', err);
-      showToast('❌ Backup Gagal. Sila check console.');
+      showToast('❌ Backup Gagal. Sila check internet.');
     });
 
-    } catch(e) {
+  } catch(e) {
     console.error('Base64 Error:', e);
   }
 }
