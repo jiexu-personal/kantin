@@ -4,62 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Kantin Terminal Ferry</title>
-
-<!-- PWA Manifest -->
 <link rel="manifest" href="manifest.json">
-
-<!-- iOS PWA Meta Tags -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kantin">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#4A0E0E">
-
-<!-- iOS Icons (inline SVG-based, no external files needed) -->
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
-
-<!-- iOS Splash Screen color -->
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
+<!-- jsPDF for PDF receipt generation (free, offline-capable after first load) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
 :root {
   --amber:#C0392B;--amber-h:#a93226;--amber-light:#F5B7B1;--amber-pale:#FDEDEC;--amber-dark:#4A0E0E;
   --green:#1E8449;--green-light:#D5F5E3;--green-mid:#27AE60;
   --red:#A32D2D;--red-light:#FCEBEB;--red-mid:#D04040;
-  --blue:#185FA5;--blue-light:#E6F1FB;
   --gray-light:#F4F3EE;--gray-mid:#B4B2A9;--gray-dark:#5F5E5A;
   --bg:#f5f2ee;--surface:#fff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
   --text:#2C2C2A;--muted:#888780;--muted2:#B4B2A9;
-  --r:10px;--rl:14px;
-  --shadow:0 1px 4px rgba(0,0,0,0.08);
-  --sat: env(safe-area-inset-top);
-  --sab: env(safe-area-inset-bottom);
-  --sal: env(safe-area-inset-left);
-  --sar: env(safe-area-inset-right);
+  --r:10px;--rl:14px;--shadow:0 1px 4px rgba(0,0,0,0.08);
+  --sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html{height:100%;height:-webkit-fill-available;}
-body{
-  min-height:100vh;min-height:-webkit-fill-available;
-  font-family:'Noto Sans SC',-apple-system,sans-serif;
-  background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;
-  overscroll-behavior:none;-webkit-overflow-scrolling:touch;
-}
+body{min-height:100vh;min-height:-webkit-fill-available;font-family:'Noto Sans SC',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}
 button,input,select,textarea{font-family:inherit;font-size:inherit;-webkit-appearance:none;border-radius:0;}
 input[type=number]{-moz-appearance:textfield;}
 .hidden{display:none!important;}
 
 /* INSTALL BANNER */
-#install-banner{
-  display:none;
-  position:fixed;bottom:0;left:0;right:0;z-index:9999;
-  background:var(--amber-dark);color:var(--amber-light);
-  padding:14px 16px calc(var(--sab) + 14px);
-  box-shadow:0 -4px 20px rgba(0,0,0,.3);
-  flex-direction:column;gap:10px;
-}
+#install-banner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--amber-dark);color:var(--amber-light);padding:14px 16px calc(var(--sab) + 14px);box-shadow:0 -4px 20px rgba(0,0,0,.3);flex-direction:column;gap:10px;}
 #install-banner.show{display:flex;}
 .ib-row{display:flex;align-items:center;gap:10px;}
 .ib-icon{font-size:28px;}
@@ -71,22 +46,12 @@ input[type=number]{-moz-appearance:textfield;}
 .ib-close{position:absolute;top:12px;right:12px;background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;padding:4px;}
 
 /* ROLE PICKER */
-#role-picker{
-  min-height:100vh;min-height:-webkit-fill-available;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:calc(var(--sat) + 28px) 20px calc(var(--sab) + 28px);
-  background:var(--bg);
-}
+#role-picker{min-height:100vh;min-height:-webkit-fill-available;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(var(--sat) + 28px) 20px calc(var(--sab) + 28px);background:var(--bg);}
 .rp-logo{font-size:52px;margin-bottom:8px;text-align:center;}
 .rp-name{font-size:18px;font-weight:900;letter-spacing:-.3px;text-align:center;line-height:1.35;max-width:280px;}
 .rp-sub{font-size:11px;color:var(--muted);margin-top:6px;text-align:center;margin-bottom:28px;}
 .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:340px;}
-.role-card{
-  background:var(--surface);border:1.5px solid var(--border);border-radius:18px;
-  padding:24px 14px 20px;text-align:center;cursor:pointer;
-  transition:transform .15s,box-shadow .15s,border-color .15s;
-  box-shadow:var(--shadow);
-}
+.role-card{background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:24px 14px 20px;text-align:center;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;box-shadow:var(--shadow);}
 .role-card:active{transform:scale(.96);}
 .role-card:hover{border-color:var(--amber);box-shadow:0 4px 16px rgba(192,57,43,.18);}
 .rc-icon{font-size:34px;margin-bottom:9px;}
@@ -97,30 +62,20 @@ input[type=number]{-moz-appearance:textfield;}
 
 /* SHELL */
 #app-shell{display:none;flex-direction:column;height:100vh;height:-webkit-fill-available;}
-.topbar{
-  background:var(--amber-dark);padding:0 16px;
-  padding-top:var(--sat);height:calc(52px + var(--sat));
-  display:flex;align-items:flex-end;padding-bottom:10px;
-  gap:10px;position:sticky;top:0;z-index:100;
-  box-shadow:0 2px 8px rgba(0,0,0,.2);flex-shrink:0;
-}
+.topbar{background:var(--amber-dark);padding:0 16px;padding-top:var(--sat);height:calc(52px + var(--sat));display:flex;align-items:flex-end;padding-bottom:10px;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2);flex-shrink:0;}
 .tb-back{background:none;border:none;font-size:22px;cursor:pointer;color:rgba(255,255,255,.7);line-height:1;padding:0 6px 0 0;}
 .tb-title{font-size:14px;font-weight:700;flex:1;letter-spacing:-.2px;color:#fff;line-height:1.3;}
 .role-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;}
 .rb-staff{background:var(--amber-pale);color:var(--amber-dark);}
 .rb-kitchen{background:var(--green-light);color:var(--green);}
-
 .screen{display:none;flex:1;overflow:hidden;}
 .screen.active{display:flex;flex-direction:column;}
 .scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
 .content{padding:14px;max-width:520px;margin:0 auto;padding-bottom:calc(var(--sab) + 80px);}
 .content-kitchen{padding:14px;max-width:520px;margin:0 auto;padding-bottom:calc(var(--sab) + 20px);}
-
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);box-shadow:var(--shadow);}
 .section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
 .divider{height:1px;background:var(--border);}
-
-/* BUTTONS */
 .btn{display:block;width:100%;padding:14px;border-radius:var(--r);border:none;font-size:14px;font-weight:700;cursor:pointer;text-align:center;transition:all .15s;}
 .btn:active{transform:scale(.97);}
 .btn-amber{background:var(--amber);color:#fff;}
@@ -129,17 +84,14 @@ input[type=number]{-moz-appearance:textfield;}
 .btn-red{background:var(--red-mid);color:#fff;}
 .btn-outline{background:transparent;border:1.5px solid var(--border2);color:var(--text);}
 .btn-sm{width:auto;padding:8px 16px;font-size:12px;border-radius:8px;}
-
+.btn-xs{width:auto;padding:6px 12px;font-size:11px;border-radius:7px;}
 .badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;}
 .badge-preparing{background:#FEF9E7;color:#9A7D0A;}
 .badge-ready{background:var(--green-light);color:var(--green);}
 .badge-paid{background:var(--gray-light);color:var(--gray-dark);}
 
 /* TAB BAR */
-.tab-bar{
-  background:var(--surface);border-top:1px solid var(--border);
-  display:flex;z-index:200;flex-shrink:0;padding-bottom:var(--sab);
-}
+.tab-bar{background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:200;flex-shrink:0;padding-bottom:var(--sab);}
 .tab-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:9px 4px 8px;cursor:pointer;font-size:10px;color:var(--muted);gap:2px;transition:color .15s;position:relative;}
 .tab-item:active{opacity:.7;}
 .tab-item.active{color:var(--amber);}
@@ -148,11 +100,7 @@ input[type=number]{-moz-appearance:textfield;}
 .pay-dot.show{display:block;}
 
 /* TICKET BANNER */
-.ticket-banner{
-  background:linear-gradient(135deg,var(--amber-dark) 0%,#7B1B1B 100%);
-  color:var(--amber-light);border-radius:var(--rl);padding:18px;margin-bottom:14px;
-  display:flex;align-items:center;justify-content:space-between;
-}
+.ticket-banner{background:linear-gradient(135deg,var(--amber-dark) 0%,#7B1B1B 100%);color:var(--amber-light);border-radius:var(--rl);padding:18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
 .tbl-label{font-size:11px;opacity:.7;font-weight:600;letter-spacing:.05em;}
 .tbl-num{font-size:46px;font-weight:900;line-height:1.05;color:#fff;}
 .btn-next{background:var(--amber-light);color:var(--amber-dark);border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;}
@@ -217,6 +165,8 @@ input[type=number]{-moz-appearance:textfield;}
 .pcc-total-row{padding:8px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .pcc-total{font-size:18px;font-weight:800;color:var(--amber);}
 .pcc-method{font-size:11px;background:var(--gray-light);color:var(--gray-dark);padding:3px 9px;border-radius:20px;font-weight:600;}
+.receipt-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--amber-pale);border:1.5px solid var(--amber-light);border-radius:9px;font-size:12px;font-weight:700;color:var(--amber-dark);cursor:pointer;}
+.receipt-btn:active{opacity:.7;}
 
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
@@ -265,10 +215,27 @@ input:checked+.tslider:before{transform:translateX(18px);}
 .kc-note{font-size:11px;color:var(--amber);font-style:italic;padding-top:6px;}
 .kc-foot{padding:8px 14px 12px;display:flex;gap:8px;}
 
+/* RECEIPT HISTORY */
+.rh-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);box-shadow:var(--shadow);margin-bottom:8px;padding:12px 14px;display:flex;align-items:center;gap:12px;}
+.rh-num{font-size:18px;font-weight:900;color:var(--amber);min-width:42px;}
+.rh-info{flex:1;min-width:0;}
+.rh-id{font-size:12px;font-weight:700;}
+.rh-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* BUSINESS SETTINGS */
+.biz-field-wrap{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.biz-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px;}
+
 .empty{text-align:center;padding:50px 20px;color:var(--muted);}
 .empty-icon{font-size:42px;margin-bottom:10px;}
 .empty-text{font-size:13px;}
 .copy-footer{text-align:center;font-size:10px;color:var(--muted2);padding:18px 0 6px;}
+
+/* SST toggle area */
+.sst-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.sst-info{flex:1;}
+.sst-title{font-size:13px;font-weight:600;}
+.sst-sub{font-size:11px;color:var(--muted);}
 
 @media (min-width:768px){
   .content,.content-kitchen{max-width:600px;}
@@ -371,12 +338,14 @@ input:checked+.tslider:before{transform:translateX(18px);}
           <div class="active-orders-section" id="active-orders-section"></div>
         </div>
       </div>
-
       <div id="staff-tab-payments" class="staff-panel hidden">
         <div class="content" id="sp-payments-content"></div>
       </div>
       <div id="staff-tab-stats" class="staff-panel hidden">
         <div class="content" id="sp-stats-content"></div>
+      </div>
+      <div id="staff-tab-receipts" class="staff-panel hidden">
+        <div class="content" id="sp-receipts-content"></div>
       </div>
       <div id="staff-tab-menu" class="staff-panel hidden">
         <div class="content" id="sp-menu-content"></div>
@@ -385,7 +354,6 @@ input:checked+.tslider:before{transform:translateX(18px);}
         <div class="content" id="sp-settings-content"></div>
       </div>
     </div>
-
     <div class="tab-bar">
       <div class="tab-item active" id="stab-home" onclick="staffTab('home')">
         <span class="tab-icon">🎫</span>Pesanan
@@ -397,8 +365,8 @@ input:checked+.tslider:before{transform:translateX(18px);}
       <div class="tab-item" id="stab-stats" onclick="staffTab('stats')">
         <span class="tab-icon">📊</span>Jualan
       </div>
-      <div class="tab-item" id="stab-menu" onclick="staffTab('menu')">
-        <span class="tab-icon">🍽️</span>Menu
+      <div class="tab-item" id="stab-receipts" onclick="staffTab('receipts')">
+        <span class="tab-icon">🧾</span>Resit
       </div>
       <div class="tab-item" id="stab-settings" onclick="staffTab('settings')">
         <span class="tab-icon">⚙️</span>Tetapan
@@ -470,8 +438,11 @@ let MENU=[
   {id:'B15',name:'Sunkist',price:3.50,cat:'Minuman Sejuk'},
 ];
 
+// ═══════════════════════════════
+// STATE
+// ═══════════════════════════════
 let S={
-  nextTicket:1,currentTicket:null,orders:{},nextId:1001,
+  nextTicket:1,currentTicket:null,orders:{},nextId:1001,nextReceiptNum:1,
   payMethods:[
     {id:'cash',name:'Tunai / Cash',icon:'💵',enabled:true,builtin:true},
     {id:'tng',name:"Touch 'n Go",icon:'📱',enabled:true,builtin:true},
@@ -479,35 +450,60 @@ let S={
   ],
   waiter:{cart:{},cat:'Semua',selectedMethod:'cash'},
   currentRole:null,
+  biz:{
+    name:'Kantin Terminal Ferry',
+    address:'Terminal Ferry Minyak Beku, Batu Pahat, Johor',
+    tel:'+60-18 781 1293',
+    regNo:'',
+    sstNo:'',
+    sstEnabled:false,
+    sstRate:6,
+  }
 };
 
 // ═══════════════════════════════
-// PERSISTENCE (localStorage)
+// PERSISTENCE
 // ═══════════════════════════════
-const STORAGE_KEY='kantin_state_v2';
+const STORAGE_KEY='kantin_state_v3';
 function saveState(){
   try{
-    const data={
-      nextTicket:S.nextTicket,nextId:S.nextId,
-      orders:S.orders,payMethods:S.payMethods
-    };
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({
+      nextTicket:S.nextTicket,nextId:S.nextId,nextReceiptNum:S.nextReceiptNum,
+      orders:S.orders,payMethods:S.payMethods,biz:S.biz
+    }));
   }catch(e){console.warn('Save failed',e);}
 }
 function loadState(){
   try{
     const raw=localStorage.getItem(STORAGE_KEY);
     if(!raw)return;
-    const data=JSON.parse(raw);
-    if(data.nextTicket)S.nextTicket=data.nextTicket;
-    if(data.nextId)S.nextId=data.nextId;
-    if(data.orders)S.orders=data.orders;
-    if(data.payMethods&&data.payMethods.length)S.payMethods=data.payMethods;
+    const d=JSON.parse(raw);
+    if(d.nextTicket)S.nextTicket=d.nextTicket;
+    if(d.nextId)S.nextId=d.nextId;
+    if(d.nextReceiptNum)S.nextReceiptNum=d.nextReceiptNum;
+    if(d.orders)S.orders=d.orders;
+    if(d.payMethods&&d.payMethods.length)S.payMethods=d.payMethods;
+    if(d.biz)S.biz={...S.biz,...d.biz};
   }catch(e){console.warn('Load failed',e);}
 }
 
+// ═══════════════════════════════
+// HELPERS
+// ═══════════════════════════════
 function fmt(n){return n<10?'0'+n:String(n);}
 function now(){return new Date().toLocaleTimeString('ms',{hour:'2-digit',minute:'2-digit'});}
+function fmtDate(){
+  const d=new Date();
+  return d.toLocaleDateString('en-MY',{year:'numeric',month:'2-digit',day:'2-digit'});
+}
+function fmtDateTime(){
+  const d=new Date();
+  return d.toLocaleDateString('en-MY',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+}
+function receiptId(num){
+  const d=new Date();
+  return 'RCP-'+d.getFullYear()+fmt(d.getMonth()+1)+fmt(d.getDate())+'-'+String(num).padStart(4,'0');
+}
 
 // ═══════════════════════════════
 // PWA INSTALL
@@ -515,45 +511,24 @@ function now(){return new Date().toLocaleTimeString('ms',{hour:'2-digit',minute:
 let deferredPrompt=null;
 const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;
 const isStandalone=window.matchMedia('(display-mode:standalone)').matches||window.navigator.standalone;
-
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();deferredPrompt=e;
-  if(!isStandalone&&!localStorage.getItem('install_dismissed')){
-    showInstallBanner();
-  }
+  if(!isStandalone&&!localStorage.getItem('install_dismissed'))showInstallBanner();
 });
-
 function showInstallBanner(){
-  const banner=document.getElementById('install-banner');
-  banner.classList.add('show');
-  if(isIOS){
-    document.getElementById('install-btn').classList.add('hidden');
-    document.getElementById('ios-hint').classList.remove('hidden');
-  }
+  const b=document.getElementById('install-banner');b.classList.add('show');
+  if(isIOS){document.getElementById('install-btn').classList.add('hidden');document.getElementById('ios-hint').classList.remove('hidden');}
 }
-function dismissInstall(){
-  document.getElementById('install-banner').classList.remove('show');
-  localStorage.setItem('install_dismissed','1');
-}
-async function installPWA(){
-  if(!deferredPrompt)return;
-  deferredPrompt.prompt();
-  const{outcome}=await deferredPrompt.userChoice;
-  deferredPrompt=null;
-  document.getElementById('install-banner').classList.remove('show');
-}
-
+function dismissInstall(){document.getElementById('install-banner').classList.remove('show');localStorage.setItem('install_dismissed','1');}
+async function installPWA(){if(!deferredPrompt)return;deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;deferredPrompt=null;document.getElementById('install-banner').classList.remove('show');}
 function showPWAStatus(){
-  const wrap=document.getElementById('pwa-status-wrap');
-  if(isStandalone){
-    wrap.innerHTML='<div class="pwa-status">✅ APP Diinstall · Mod Offline Aktif</div>';
-  } else if(isIOS&&!isStandalone){
-    wrap.innerHTML='<div class="pwa-status" style="background:#FEF9E7;color:#9A7D0A;cursor:pointer;" onclick="showInstallBanner()">📲 Tekan untuk install ke Home Screen</div>';
-  }
+  const w=document.getElementById('pwa-status-wrap');
+  if(isStandalone)w.innerHTML='<div class="pwa-status">✅ APP Diinstall · Mod Offline Aktif</div>';
+  else if(isIOS&&!isStandalone)w.innerHTML='<div class="pwa-status" style="background:#FEF9E7;color:#9A7D0A;cursor:pointer;" onclick="showInstallBanner()">📲 Tekan untuk install ke Home Screen</div>';
 }
 
 // ═══════════════════════════════
-// APP LOGIC
+// APP NAVIGATION
 // ═══════════════════════════════
 function enter(role){
   S.currentRole=role;
@@ -565,25 +540,24 @@ function enter(role){
   b.className='role-badge '+(role==='staff'?'rb-staff':'rb-kitchen');
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+role).classList.add('active');
-  if(role==='staff') staffTab('home');
-  if(role==='kitchen') renderKitchen();
+  if(role==='staff')staffTab('home');
+  if(role==='kitchen')renderKitchen();
 }
 function goBack(){
   document.getElementById('role-picker').style.display='flex';
   document.getElementById('app-shell').style.display='none';
   cancelOrderForm(true);
 }
-
 function staffTab(tab){
   document.querySelectorAll('.staff-panel').forEach(p=>p.classList.add('hidden'));
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
   document.getElementById('staff-tab-'+tab).classList.remove('hidden');
   document.getElementById('stab-'+tab).classList.add('active');
-  if(tab==='home') renderHome();
-  if(tab==='payments') renderPayments();
-  if(tab==='stats') renderStats();
-  if(tab==='menu') renderMenuManager();
-  if(tab==='settings') renderSettings();
+  if(tab==='home')renderHome();
+  if(tab==='payments')renderPayments();
+  if(tab==='stats')renderStats();
+  if(tab==='receipts')renderReceiptHistory();
+  if(tab==='settings')renderSettings();
   updatePayDot();
 }
 function updatePayDot(){
@@ -591,6 +565,9 @@ function updatePayDot(){
   document.getElementById('pay-dot').classList.toggle('show',n>0);
 }
 
+// ═══════════════════════════════
+// ORDER FLOW
+// ═══════════════════════════════
 function issueTicket(){
   if(S.currentTicket!==null&&Object.keys(S.waiter.cart).length>0){
     if(!confirm('Troli semasa belum diserahkan. Tiket baru akan kosongkan troli. Teruskan?'))return;
@@ -611,33 +588,6 @@ function cancelOrderForm(silent){
   if(!silent&&document.getElementById('order-note'))document.getElementById('order-note').value='';
   renderActiveOrders();
 }
-
-function renderHome(){
-  document.getElementById('banner-num').textContent=S.currentTicket!==null?'#'+fmt(S.currentTicket):'--';
-  renderActiveOrders();
-}
-function renderActiveOrders(){
-  const wrap=document.getElementById('active-orders-section');
-  const active=Object.values(S.orders).filter(o=>o.status!=='served_confirmed').sort((a,b)=>a.id-b.id);
-  if(!active.length){wrap.innerHTML='';return;}
-  const sLabel={paid:'Di Dapur',ready:'Siap · Tunggu Ambil',served_confirmed:'Selesai'};
-  const sCls={paid:'badge-preparing',ready:'badge-ready',served_confirmed:'badge-paid'};
-  let html='<div class="section-label" style="margin-bottom:8px;">Pesanan Aktif · '+active.length+'</div>';
-  active.forEach(o=>{
-    const items=o.items.map(i=>i.id+'×'+i.qty).join(' · ');
-    const m=S.payMethods.find(p=>p.id===o.payMethod)||{icon:'💳',name:o.payMethod};
-    html+=`<div class="order-chip">
-      <div class="oc-num">#${fmt(o.ticketNum)}</div>
-      <div class="oc-info">
-        <div class="oc-name">${items}</div>
-        <div class="oc-sub">#${o.id} · ${o.time} · RM ${o.total.toFixed(2)} · ${m.icon} ${m.name}</div>
-      </div>
-      <div class="oc-actions"><span class="badge ${sCls[o.status]}">${sLabel[o.status]}</span></div>
-    </div>`;
-  });
-  wrap.innerHTML=html;
-}
-
 function setCat(el,cat){
   document.querySelectorAll('#cat-bar .cat-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');S.waiter.cat=cat;renderMenuItems();
@@ -666,9 +616,15 @@ function renderCartPreview(){
   const wrap=document.getElementById('cart-preview');
   const pmSec=document.getElementById('pay-method-section');
   if(!entries.length){wrap.innerHTML='';pmSec.style.display='none';return;}
+  const subtotal=cartTotal();
+  const sstAmt=S.biz.sstEnabled?+(subtotal*(S.biz.sstRate/100)).toFixed(2):0;
+  const grandTotal=+(subtotal+sstAmt).toFixed(2);
   let html='';
-  entries.forEach(([id,q])=>{const m=MENU.find(m=>m.id===id);html+=`<div class="cp-row"><span class="name">[${id}] ${m?m.name:id} ×${q}</span><span>${m&&m.price!=null?'RM '+(m.price*q).toFixed(2):'—'}</span></div>`;});
-  html+=`<div class="cp-total"><span class="label">JUMLAH</span><span class="amt">RM ${cartTotal().toFixed(2)}</span></div>`;
+  entries.forEach(([id,q])=>{const m=MENU.find(m=>m.id===id);html+=`<div class="cp-row"><span class="name">[${id}] ${m?m.name:id} x${q}</span><span>${m&&m.price!=null?'RM '+(m.price*q).toFixed(2):'—'}</span></div>`;});
+  html+=`<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px;">`;
+  html+=`<div class="cp-row"><span class="name">Subtotal</span><span>RM ${subtotal.toFixed(2)}</span></div>`;
+  if(S.biz.sstEnabled)html+=`<div class="cp-row"><span class="name">SST ${S.biz.sstRate}%</span><span>RM ${sstAmt.toFixed(2)}</span></div>`;
+  html+=`</div><div class="cp-total"><span class="label">JUMLAH</span><span class="amt">RM ${grandTotal.toFixed(2)}</span></div>`;
   wrap.innerHTML=html;pmSec.style.display='block';renderPayMethodChips();
 }
 function renderPayMethodChips(){
@@ -686,13 +642,63 @@ function submitOrder(){
   const num=S.currentTicket;
   const items=Object.entries(S.waiter.cart).map(([id,qty])=>({...MENU.find(m=>m.id===id),qty}));
   const note=document.getElementById('order-note').value.trim();
+  const subtotal=cartTotal();
+  const sstAmt=S.biz.sstEnabled?+(subtotal*(S.biz.sstRate/100)).toFixed(2):0;
+  const grandTotal=+(subtotal+sstAmt).toFixed(2);
   const oid=S.nextId++;
-  S.orders[oid]={id:oid,ticketNum:num,items,note,total:cartTotal(),status:'paid',payMethod:method,time:now()};
+  const receiptNum=S.nextReceiptNum++;
+  const rId=receiptId(receiptNum);
+  const dateTime=fmtDateTime();
+  S.orders[oid]={
+    id:oid,ticketNum:num,items,note,
+    subtotal,sstAmt,total:grandTotal,
+    status:'paid',payMethod:method,
+    time:now(),dateTime,
+    receiptId:rId,receiptNum
+  };
   cancelOrderForm();renderActiveOrders();updatePayDot();
   saveState();
-  showToast('✅ Bayaran diterima · Pesanan #'+oid+' dihantar ke dapur');
+  showToast('✅ Bayaran diterima · '+rId);
+  // Auto-prompt to download receipt
+  if(confirm('Resit berjaya dibuat!\n\nMahu download PDF resit sekarang?')){
+    generateReceiptPDF(S.orders[oid]);
+  }
 }
 
+// ═══════════════════════════════
+// RENDER HOME & ACTIVE ORDERS
+// ═══════════════════════════════
+function renderHome(){
+  document.getElementById('banner-num').textContent=S.currentTicket!==null?'#'+fmt(S.currentTicket):'--';
+  renderActiveOrders();
+}
+function renderActiveOrders(){
+  const wrap=document.getElementById('active-orders-section');
+  const active=Object.values(S.orders).filter(o=>o.status!=='served_confirmed').sort((a,b)=>a.id-b.id);
+  if(!active.length){wrap.innerHTML='';return;}
+  const sLabel={paid:'Di Dapur',ready:'Siap · Tunggu Ambil'};
+  const sCls={paid:'badge-preparing',ready:'badge-ready'};
+  let html='<div class="section-label" style="margin-bottom:8px;">Pesanan Aktif · '+active.length+'</div>';
+  active.forEach(o=>{
+    const items=o.items.map(i=>i.id+'x'+i.qty).join(' · ');
+    const m=S.payMethods.find(p=>p.id===o.payMethod)||{icon:'💳',name:o.payMethod};
+    html+=`<div class="order-chip">
+      <div class="oc-num">#${fmt(o.ticketNum)}</div>
+      <div class="oc-info">
+        <div class="oc-name">${items}</div>
+        <div class="oc-sub">${o.receiptId} · ${o.time} · RM ${o.total.toFixed(2)} · ${m.icon}</div>
+      </div>
+      <div class="oc-actions">
+        <span class="badge ${sCls[o.status]}">${sLabel[o.status]}</span>
+      </div>
+    </div>`;
+  });
+  wrap.innerHTML=html;
+}
+
+// ═══════════════════════════════
+// PAYMENTS TAB
+// ═══════════════════════════════
 function renderPayments(){
   const wrap=document.getElementById('sp-payments-content');
   const all=Object.values(S.orders).filter(o=>o.status==='paid'||o.status==='ready').sort((a,b)=>a.id-b.id);
@@ -702,29 +708,38 @@ function renderPayments(){
   wrap.innerHTML='<div class="section-label" style="margin-bottom:10px;">Dalam Proses · '+all.length+'</div>'+
   all.map(o=>{
     const m=S.payMethods.find(p=>p.id===o.payMethod)||{name:o.payMethod,icon:'💳'};
-    const itemsHtml=o.items.map(i=>`<div class="cp-row-sm"><span class="n">[${i.id}] ${i.name} ×${i.qty}</span><span>${i.price!=null?'RM '+(i.price*i.qty).toFixed(2):'—'}</span></div>`).join('');
+    const itemsHtml=o.items.map(i=>`<div class="cp-row-sm"><span class="n">[${i.id}] ${i.name} x${i.qty}</span><span>${i.price!=null?'RM '+(i.price*i.qty).toFixed(2):'—'}</span></div>`).join('');
     return `<div class="pay-confirm-card">
       <div class="pcc-head">
         <div class="pcc-num">#${fmt(o.ticketNum)}</div>
-        <div class="pcc-info"><div style="font-size:13px;font-weight:700;">Pesanan #${o.id}</div><div class="pcc-oid">${o.time}</div></div>
+        <div class="pcc-info"><div style="font-size:13px;font-weight:700;">${o.receiptId}</div><div class="pcc-oid">${o.dateTime||o.time}</div></div>
         <span class="badge ${sCls[o.status]}">${sLabel[o.status]}</span>
       </div>
       <div class="pcc-items">${itemsHtml}${o.note?`<div style="font-size:11px;color:var(--amber);margin-top:5px;">📝 ${o.note}</div>`:''}</div>
-      <div class="pcc-total-row"><span class="pcc-method">${m.icon} ${m.name}</span><span class="pcc-total">RM ${o.total.toFixed(2)}</span></div>
+      <div class="pcc-total-row">
+        <span class="pcc-method">${m.icon} ${m.name}</span>
+        <span class="pcc-total">RM ${o.total.toFixed(2)}</span>
+      </div>
+      <div style="padding:8px 14px 12px;display:flex;gap:8px;">
+        <button class="receipt-btn" onclick="generateReceiptPDF(S.orders[${o.id}])">🧾 Download PDF Resit</button>
+      </div>
     </div>`;
   }).join('');
 }
 
+// ═══════════════════════════════
+// KITCHEN
+// ═══════════════════════════════
 function renderKitchen(){
   const list=document.getElementById('kitchen-list');
   const orders=Object.values(S.orders).filter(o=>o.status==='paid'||o.status==='ready').sort((a,b)=>a.id-b.id);
   if(!orders.length){list.innerHTML='<div class="empty"><div class="empty-icon">🍳</div><div class="empty-text">Tiada pesanan baharu</div></div>';return;}
   list.innerHTML=orders.map(o=>{
-    const itemsHtml=o.items.map(i=>`<div class="kc-item"><span class="kc-code">${i.id}</span> ${i.name} ×${i.qty}</div>`).join('');
+    const itemsHtml=o.items.map(i=>`<div class="kc-item"><span class="kc-code">${i.id}</span> ${i.name} x${i.qty}</div>`).join('');
     return `<div class="k-card k-${o.status}">
       <div class="kc-head">
         <div class="kc-num">#${fmt(o.ticketNum)}</div>
-        <div class="kc-time">${o.time} · Pesanan #${o.id}</div>
+        <div class="kc-time">${o.time} · ${o.receiptId}</div>
         <span class="k-pay-badge">✓ Bayar</span>
       </div>
       <div class="kc-body">${itemsHtml}${o.note?`<div class="kc-note">📝 ${o.note}</div>`:''}</div>
@@ -739,11 +754,207 @@ function renderKitchen(){
 function kitchenReady(id){S.orders[id].status='ready';renderKitchen();saveState();showToast('Pesanan #'+id+' siap!');}
 function kitchenServed(id){S.orders[id].status='served_confirmed';renderKitchen();renderHome();updatePayDot();saveState();}
 
+// ═══════════════════════════════
+// RECEIPT HISTORY TAB
+// ═══════════════════════════════
+function renderReceiptHistory(){
+  const wrap=document.getElementById('sp-receipts-content');
+  const all=Object.values(S.orders).sort((a,b)=>b.id-a.id);
+  if(!all.length){wrap.innerHTML='<div class="empty"><div class="empty-icon">🧾</div><div class="empty-text">Belum ada resit hari ini</div></div>';return;}
+  const statusMap={paid:'Di Dapur',ready:'Siap Ambil',served_confirmed:'Selesai'};
+  const totalRev=all.reduce((s,o)=>s+o.total,0);
+  let html=`<div class="stats-grid" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="sc-val">${all.length}</div><div class="sc-lbl">Jumlah Resit</div></div>
+    <div class="stat-card"><div class="sc-val">RM ${totalRev.toFixed(2)}</div><div class="sc-lbl">Jumlah Kutipan</div></div>
+  </div>
+  <div class="section-label" style="margin-bottom:8px;">Semua Resit Hari Ini</div>`;
+  all.forEach(o=>{
+    const m=S.payMethods.find(p=>p.id===o.payMethod)||{icon:'💳',name:o.payMethod};
+    html+=`<div class="rh-card">
+      <div class="rh-num">#${fmt(o.ticketNum)}</div>
+      <div class="rh-info">
+        <div class="rh-id">${o.receiptId}</div>
+        <div class="rh-sub">${o.dateTime||o.time} · ${m.icon} ${m.name} · <strong>RM ${o.total.toFixed(2)}</strong> · ${statusMap[o.status]||o.status}</div>
+      </div>
+      <button class="receipt-btn btn-xs" onclick="generateReceiptPDF(S.orders[${o.id}])">🧾 PDF</button>
+    </div>`;
+  });
+  html+=`<div style="margin-top:12px;"><button class="btn btn-outline" style="font-size:12px;" onclick="exportAllReceiptsCSV()">📥 Export CSV (Excel)</button></div>`;
+  html+=`<div class="copy-footer">© ChanJX · +60-18 781 1293</div>`;
+  wrap.innerHTML=html;
+}
+
+// ═══════════════════════════════
+// CSV EXPORT
+// ═══════════════════════════════
+function exportAllReceiptsCSV(){
+  const all=Object.values(S.orders).sort((a,b)=>a.id-b.id);
+  if(!all.length){alert('Tiada data untuk export.');return;}
+  let csv='Receipt No,Tiket,Tarikh/Masa,Item,Subtotal,SST,Jumlah,Kaedah Bayaran,Status\n';
+  all.forEach(o=>{
+    const m=S.payMethods.find(p=>p.id===o.payMethod)||{name:o.payMethod};
+    const items=o.items.map(i=>`${i.name}x${i.qty}`).join(' | ');
+    const status={paid:'Di Dapur',ready:'Siap',served_confirmed:'Selesai'}[o.status]||o.status;
+    csv+=`"${o.receiptId}","#${fmt(o.ticketNum)}","${o.dateTime||o.time}","${items}","${(o.subtotal||o.total).toFixed(2)}","${(o.sstAmt||0).toFixed(2)}","${o.total.toFixed(2)}","${m.name}","${status}"\n`;
+  });
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='Kantin_Sales_'+fmtDate().replace(/\//g,'-')+'.csv';
+  a.click();URL.revokeObjectURL(url);
+  showToast('✅ CSV exported!');
+}
+
+// ═══════════════════════════════
+// PDF RECEIPT GENERATOR
+// ═══════════════════════════════
+function generateReceiptPDF(order){
+  if(!order){showToast('❌ Data pesanan tidak dijumpai.');return;}
+  if(typeof window.jspdf==='undefined'){
+    showToast('⏳ Loading PDF library…');
+    setTimeout(()=>generateReceiptPDF(order),1500);
+    return;
+  }
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a5'});
+
+  const W=148;// A5 width mm
+  const margin=12;
+  const colW=W-margin*2;
+  let y=margin;
+
+  // ── Header ──────────────────────────────
+  doc.setFillColor(74,14,14);// amber-dark
+  doc.rect(0,0,W,36,'F');
+
+  doc.setTextColor(245,183,177);// amber-light
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(14);
+  doc.text(S.biz.name,W/2,y+8,{align:'center'});
+  doc.setFontSize(8);
+  doc.setFont('helvetica','normal');
+  doc.text(S.biz.address,W/2,y+15,{align:'center',maxWidth:colW});
+  doc.text('Tel: '+S.biz.tel,W/2,y+21,{align:'center'});
+  if(S.biz.regNo)doc.text('No. Pendaftaran: '+S.biz.regNo,W/2,y+27,{align:'center'});
+  if(S.biz.sstNo&&S.biz.sstEnabled)doc.text('No. SST: '+S.biz.sstNo,W/2,y+33,{align:'center'});
+
+  y=40;
+
+  // ── Receipt Info ────────────────────────
+  doc.setTextColor(44,44,42);
+  doc.setFillColor(253,237,236);// amber-pale
+  doc.rect(margin,y,colW,18,FS='F');
+  doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.setTextColor(74,14,14);
+  doc.text('RESIT RASMI / OFFICIAL RECEIPT',W/2,y+7,{align:'center'});
+  doc.setFont('helvetica','normal');doc.setFontSize(8);
+  doc.text('No. Resit: '+order.receiptId,margin+3,y+13);
+  doc.text('No. Tiket: #'+fmt(order.ticketNum),W/2,y+13);
+  doc.text('Tarikh: '+(order.dateTime||order.time),W-margin-3,y+13,{align:'right'});
+  y+=22;
+
+  // ── Divider ──────────────────────────────
+  doc.setDrawColor(192,57,43);doc.setLineWidth(0.4);
+  doc.line(margin,y,W-margin,y);y+=5;
+
+  // ── Items Header ─────────────────────────
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(136,135,128);
+  doc.text('ITEM',margin,y);
+  doc.text('QTY',margin+70,y,{align:'center'});
+  doc.text('HARGA',margin+82,y);
+  doc.text('JUMLAH',W-margin,y,{align:'right'});
+  y+=2;
+  doc.setDrawColor(180,178,169);doc.setLineWidth(0.2);
+  doc.line(margin,y,W-margin,y);y+=4;
+
+  // ── Items ────────────────────────────────
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(44,44,42);
+  order.items.forEach(item=>{
+    const lineTotal=item.price!=null?(item.price*item.qty).toFixed(2):'—';
+    const unitPrice=item.price!=null?item.price.toFixed(2):'—';
+    // Item name + code
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+    doc.text('['+item.id+'] '+item.name,margin,y);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);
+    doc.text(String(item.qty),margin+70,y,{align:'center'});
+    doc.text('RM '+unitPrice,margin+82,y);
+    doc.text('RM '+lineTotal,W-margin,y,{align:'right'});
+    y+=6;
+    if(y>190){doc.addPage();y=margin;}
+  });
+
+  // Note
+  if(order.note){
+    doc.setFontSize(8);doc.setTextColor(192,57,43);doc.setFont('helvetica','italic');
+    doc.text('Nota: '+order.note,margin,y);y+=5;
+    doc.setTextColor(44,44,42);doc.setFont('helvetica','normal');
+  }
+
+  y+=1;
+  doc.setDrawColor(180,178,169);doc.setLineWidth(0.2);
+  doc.line(margin,y,W-margin,y);y+=5;
+
+  // ── Totals ────────────────────────────────
+  const subtotal=(order.subtotal||order.total).toFixed(2);
+  const sstAmt=(order.sstAmt||0).toFixed(2);
+  const grandTotal=order.total.toFixed(2);
+
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(44,44,42);
+  doc.text('Subtotal:',W-margin-40,y);doc.text('RM '+subtotal,W-margin,y,{align:'right'});y+=5;
+  if(S.biz.sstEnabled&&order.sstAmt>0){
+    doc.text('SST ('+S.biz.sstRate+'%):',W-margin-40,y);doc.text('RM '+sstAmt,W-margin,y,{align:'right'});y+=5;
+  }
+
+  doc.setDrawColor(192,57,43);doc.setLineWidth(0.4);
+  doc.line(W-margin-60,y,W-margin,y);y+=4;
+
+  doc.setFillColor(74,14,14);doc.roundedRect(W-margin-64,y-2,66,10,2,2,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);
+  doc.text('JUMLAH / TOTAL:',W-margin-62,y+5);
+  doc.setFontSize(11);
+  doc.text('RM '+grandTotal,W-margin,y+5.5,{align:'right'});y+=14;
+
+  // ── Payment Method ─────────────────────────
+  const m=S.payMethods.find(p=>p.id===order.payMethod)||{name:order.payMethod};
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(44,44,42);
+  doc.setFillColor(244,243,238);doc.roundedRect(margin,y-1,colW,8,2,2,'F');
+  doc.text('Kaedah Bayaran: '+m.name,margin+3,y+4);
+  const statusLabel={paid:'Dibayar / Paid',ready:'Dibayar / Paid',served_confirmed:'Dibayar / Paid'};
+  doc.setTextColor(30,132,73);doc.setFont('helvetica','bold');
+  doc.text('✓ '+(statusLabel[order.status]||'Paid'),W-margin-3,y+4,{align:'right'});
+  y+=12;
+
+  // ── Footer ────────────────────────────────
+  doc.setDrawColor(192,57,43);doc.setLineWidth(0.3);
+  doc.line(margin,y,W-margin,y);y+=4;
+  doc.setFont('helvetica','italic');doc.setFontSize(7.5);doc.setTextColor(136,135,128);
+  doc.text('Ini adalah resit yang dijana secara komputer dan adalah sah tanpa tandatangan.',W/2,y,{align:'center'});y+=4;
+  doc.text('This is a computer generated receipt and is valid without signature.',W/2,y,{align:'center'});y+=5;
+
+  if(S.biz.sstEnabled){
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);
+    doc.text('SST dikenakan mengikut Akta Cukai Perkhidmatan dan Jualan 2018.',W/2,y,{align:'center'});y+=4;
+  }
+
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(74,14,14);
+  doc.text('Terima kasih atas kunjungan anda! / Thank you for your visit!',W/2,y,{align:'center'});y+=5;
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(180,178,169);
+  doc.text('Sistem POS oleh ChanJX · Dicetak: '+fmtDateTime(),W/2,y,{align:'center'});
+
+  // ── Save ──────────────────────────────────
+  const filename=order.receiptId+'.pdf';
+  doc.save(filename);
+  showToast('✅ '+filename+' downloaded!');
+}
+
+// ═══════════════════════════════
+// STATS
+// ═══════════════════════════════
 function renderStats(){
   const all=Object.values(S.orders);
   const done=all.filter(o=>o.status==='served_confirmed');
   const active=all.filter(o=>o.status!=='served_confirmed');
-  const rev=all.filter(o=>o.status!=='pending').reduce((s,o)=>s+o.total,0);
+  const rev=all.reduce((s,o)=>s+o.total,0);
   const wrap=document.getElementById('sp-stats-content');
   const byMethod=S.payMethods.map(m=>{
     const ords=all.filter(o=>o.payMethod===m.id);
@@ -761,9 +972,13 @@ function renderStats(){
     <div class="stat-card"><div class="sc-val">RM ${rev.toFixed(0)}</div><div class="sc-lbl">Jualan Hari Ini</div></div>
   </div>
   <div class="section-label" style="margin-bottom:8px;">Mengikut Kaedah Bayaran</div>${byMethod}
+  <div style="margin-top:12px;"><button class="btn btn-outline" style="font-size:12px;" onclick="exportAllReceiptsCSV()">📥 Export CSV (untuk Excel/laporan)</button></div>
   <div class="copy-footer">© ChanJX · +60-18 781 1293</div>`;
 }
 
+// ═══════════════════════════════
+// MENU MANAGER
+// ═══════════════════════════════
 function renderMenuManager(){
   const wrap=document.getElementById('sp-menu-content');
   const cats=['Makanan','Tambahan','Minuman Panas','Minuman Sejuk'];
@@ -805,6 +1020,9 @@ function deleteMenuItem(id){
   const idx=MENU.findIndex(m=>m.id===id);if(idx>-1)MENU.splice(idx,1);renderMenuManager();
 }
 
+// ═══════════════════════════════
+// SETTINGS (incl business info + SST)
+// ═══════════════════════════════
 function renderSettings(){
   const wrap=document.getElementById('sp-settings-content');
   const pmRows=S.payMethods.map(m=>`<div class="pm-row">
@@ -813,7 +1031,46 @@ function renderSettings(){
     <label class="toggle"><input type="checkbox" ${m.enabled?'checked':''} onchange="togglePM('${m.id}',this.checked)"><span class="tslider"></span></label>
     ${!m.builtin?`<button class="del-btn" onclick="deletePM('${m.id}')">×</button>`:''}
   </div>`).join('');
-  wrap.innerHTML=`<div class="card" style="padding:14px;margin-bottom:12px;">
+
+  wrap.innerHTML=`
+  <!-- Business Info -->
+  <div class="card" style="padding:14px;margin-bottom:12px;">
+    <div class="section-label" style="margin-bottom:10px;">Maklumat Perniagaan (untuk Resit)</div>
+    <div class="biz-field-wrap">
+      <div><div class="biz-label">Nama Perniagaan</div>
+        <input class="field" id="biz-name" value="${S.biz.name}" placeholder="Nama kantin/kedai" oninput="updateBiz()"/></div>
+      <div><div class="biz-label">Alamat</div>
+        <input class="field" id="biz-addr" value="${S.biz.address}" placeholder="Alamat penuh" oninput="updateBiz()"/></div>
+      <div><div class="biz-label">No. Telefon</div>
+        <input class="field" id="biz-tel" value="${S.biz.tel}" placeholder="+60-xx xxx xxxx" oninput="updateBiz()"/></div>
+      <div><div class="biz-label">No. Pendaftaran (SSM / ROC) — optional</div>
+        <input class="field" id="biz-reg" value="${S.biz.regNo}" placeholder="cth: 002345678-A" oninput="updateBiz()"/></div>
+    </div>
+  </div>
+
+  <!-- SST Settings -->
+  <div class="card" style="padding:14px;margin-bottom:12px;">
+    <div class="section-label" style="margin-bottom:10px;">SST (Sales & Service Tax)</div>
+    <div class="sst-row">
+      <div class="sst-info">
+        <div class="sst-title">Aktifkan SST</div>
+        <div class="sst-sub">Dayakan jika anda berdaftar SST dengan Kastam</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="sst-toggle" ${S.biz.sstEnabled?'checked':''} onchange="updateSST()"><span class="tslider"></span></label>
+    </div>
+    <div id="sst-fields" style="${S.biz.sstEnabled?'':'display:none;'}margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+      <div><div class="biz-label">No. SST</div>
+        <input class="field" id="biz-sst" value="${S.biz.sstNo}" placeholder="cth: W16-1800-32000001" oninput="updateBiz()"/></div>
+      <div><div class="biz-label">Kadar SST (%)</div>
+        <input class="field" id="biz-sstrate" type="number" value="${S.biz.sstRate}" min="0" max="20" step="0.5" oninput="updateBiz()"/></div>
+    </div>
+    <div style="margin-top:10px;padding:10px;background:var(--blue-light, #E6F1FB);border-radius:8px;font-size:11px;color:#185FA5;line-height:1.6;">
+      ℹ️ Kantin kecil biasanya <strong>tidak perlu</strong> mendaftar SST melainkan hasil tahunan melebihi RM500,000. Jika tidak pasti, hubungi Jabatan Kastam atau akauntan anda.
+    </div>
+  </div>
+
+  <!-- Payment Methods -->
+  <div class="card" style="padding:14px;margin-bottom:12px;">
     <div class="section-label" style="margin-bottom:10px;">Kaedah Bayaran</div>${pmRows}
     <div style="display:flex;gap:8px;margin-top:12px;">
       <input class="field" id="npm-icon" placeholder="Ikon" style="width:54px;text-align:center;" />
@@ -821,13 +1078,37 @@ function renderSettings(){
       <button class="btn btn-amber btn-sm" onclick="addPM()">+</button>
     </div>
   </div>
+
+  <!-- Danger Zone -->
   <div class="danger-zone">
     <div class="dz-title">⚠️ Reset Harian</div>
     <div class="dz-desc">Reset semua tiket dan rekod pesanan. Nombor tiket bermula semula dari 01. Gunakan ini setiap hari baharu.</div>
     <button class="btn btn-red" onclick="dailyReset()">Sahkan Reset (Hari Baharu)</button>
   </div>
   <div class="copy-footer">© ChanJX · +60-18 781 1293</div>`;
+
+  // Show/hide SST fields based on toggle
+  if(!S.biz.sstEnabled){
+    const sf=document.getElementById('sst-fields');if(sf)sf.style.display='none';
+  }
 }
+
+function updateBiz(){
+  S.biz.name=document.getElementById('biz-name')?.value||S.biz.name;
+  S.biz.address=document.getElementById('biz-addr')?.value||S.biz.address;
+  S.biz.tel=document.getElementById('biz-tel')?.value||S.biz.tel;
+  S.biz.regNo=document.getElementById('biz-reg')?.value||'';
+  S.biz.sstNo=document.getElementById('biz-sst')?.value||'';
+  S.biz.sstRate=parseFloat(document.getElementById('biz-sstrate')?.value)||6;
+  saveState();
+}
+function updateSST(){
+  S.biz.sstEnabled=document.getElementById('sst-toggle').checked;
+  const sf=document.getElementById('sst-fields');
+  if(sf)sf.style.display=S.biz.sstEnabled?'flex':'none';
+  saveState();
+}
+
 function togglePM(id,val){const m=S.payMethods.find(p=>p.id===id);if(m){m.enabled=val;saveState();}}
 function addPM(){
   const icon=document.getElementById('npm-icon').value.trim()||'💳';
@@ -837,9 +1118,10 @@ function addPM(){
   renderSettings();saveState();
 }
 function deletePM(id){S.payMethods=S.payMethods.filter(p=>p.id!==id);renderSettings();saveState();}
+
 function dailyReset(){
   if(!confirm('Reset semua tiket dan pesanan? Tindakan ini tidak boleh dibatalkan.'))return;
-  S.orders={};S.nextId=1001;S.nextTicket=1;S.currentTicket=null;
+  S.orders={};S.nextId=1001;S.nextTicket=1;S.currentTicket=null;S.nextReceiptNum=1;
   S.waiter={cart:{},cat:'Semua',selectedMethod:S.payMethods.find(m=>m.enabled)?.id||'cash'};
   document.getElementById('order-form-wrap').classList.add('hidden');
   document.getElementById('banner-num').textContent='--';
@@ -849,9 +1131,9 @@ function dailyReset(){
 
 function showToast(msg){
   let t=document.getElementById('toast');
-  if(!t){t=document.createElement('div');t.id='toast';Object.assign(t.style,{position:'fixed',bottom:'calc(var(--sab, 0px) + 80px)',left:'50%',transform:'translateX(-50%)',background:'#4A0E0E',color:'#F5B7B1',padding:'11px 22px',borderRadius:'30px',fontSize:'13px',fontWeight:'600',zIndex:'9999',whiteSpace:'nowrap',boxShadow:'0 4px 20px rgba(0,0,0,.3)',transition:'opacity .3s',maxWidth:'90vw',textAlign:'center'});document.body.appendChild(t);}
+  if(!t){t=document.createElement('div');t.id='toast';Object.assign(t.style,{position:'fixed',bottom:'calc(var(--sab,0px) + 80px)',left:'50%',transform:'translateX(-50%)',background:'#4A0E0E',color:'#F5B7B1',padding:'11px 22px',borderRadius:'30px',fontSize:'13px',fontWeight:'600',zIndex:'9999',whiteSpace:'nowrap',boxShadow:'0 4px 20px rgba(0,0,0,.3)',transition:'opacity .3s',maxWidth:'90vw',textAlign:'center'});document.body.appendChild(t);}
   t.textContent=msg;t.style.opacity='1';
-  clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',2800);
+  clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',3000);
 }
 
 // ═══════════════════════════════
@@ -860,29 +1142,23 @@ function showToast(msg){
 window.addEventListener('DOMContentLoaded',()=>{
   loadState();
   showPWAStatus();
-  // Show install hint for iOS after a short delay
   if(isIOS&&!isStandalone&&!localStorage.getItem('install_dismissed')){
-    setTimeout(()=>showInstallBanner(),2000);
+    setTimeout(()=>showInstallBanner(),2500);
   }
 });
 
-// ═══════════════════════════════
-// SERVICE WORKER
-// ═══════════════════════════════
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('sw.js')
-      .then(r=>console.log('SW registered:',r.scope))
-      .catch(e=>console.log('SW error:',e));
+      .then(r=>console.log('SW:',r.scope))
+      .catch(e=>console.warn('SW error:',e));
   });
 }
 
-// Prevent double-tap zoom on iOS
 let lastTap=0;
 document.addEventListener('touchend',e=>{
-  const n=Date.now();
-  if(n-lastTap<300)e.preventDefault();
-  lastTap=n;},{passive:false});
+  const n=Date.now();if(n-lastTap<300)e.preventDefault();lastTap=n;
+},{passive:false});
 </script>
 </body>
 </html>
