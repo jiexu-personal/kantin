@@ -371,7 +371,7 @@ input:checked+.tslider:before{transform:translateX(18px);}
   <div class="qr-box" onclick="event.stopPropagation()">
     <div class="qr-title">📱 QR Kod Pesanan Pelanggan</div>
     <div class="qr-sub">Pelanggan imbas untuk order sendiri</div>
-    <canvas id="qr-canvas" class="qr-img"></canvas>
+    <div id="qr-wrap" style="width:200px;height:200px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;"></div>
     <div class="qr-url" id="qr-url-text"></div>
     <button class="btn btn-amber" style="margin-bottom:8px;" onclick="closeQRModal()">Tutup</button>
   </div>
@@ -1372,16 +1372,20 @@ function showQRModal(){
   const url = base + '?mode=customer';
   document.getElementById('qr-url-text').textContent = url;
   document.getElementById('qr-modal').style.display='flex';
-  // Clear and regenerate
-  const canvas = document.getElementById('qr-canvas');
-  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+  // Clear old QR
+  const wrap = document.getElementById('qr-wrap');
+  wrap.innerHTML = '';
   if(typeof QRCode !== 'undefined'){
-    QRCode.toCanvas(canvas, url, {width:200,margin:2,color:{dark:'#4A0E0E',light:'#ffffff'}}, function(err){
-      if(err) console.error(err);
+    new QRCode(wrap, {
+      text: url,
+      width: 200,
+      height: 200,
+      colorDark: '#4A0E0E',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
     });
   } else {
-    // Fallback: show URL only
-    canvas.getContext('2d').fillText('QR lib loading...', 10, 100);
+    wrap.textContent = 'QR lib loading... Sila reload.';
   }
 }
 function closeQRModal(){
