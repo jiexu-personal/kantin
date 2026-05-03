@@ -1,12 +1,12 @@
 {
-  "name": "Kantin Terminal Ferry",
-  "short_name": "Kantin",
+  "name": "Flower Kantin",
+  "short_name": "Flower Kantin",
   "description": "Sistem Pesanan Kantin @ Terminal Ferry, Minyak Beku, Batu Pahat",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#4A0E0E",
-  "theme_color": "#4A0E0E",
+  "background_color": "#FAF0EB",
+  "theme_color": "#E8705A",
   "lang": "ms",
   "scope": "./",
   "icons": [
@@ -17,13 +17,16 @@
       "purpose": "any maskable"
     },
     {
-      "src": "icon.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "food"],
+  "categories": [
+    "productivity",
+    "food"
+  ],
   "screenshots": [],
   "prefer_related_applications": false
 }
