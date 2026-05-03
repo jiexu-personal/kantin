@@ -356,14 +356,19 @@ input:checked+.tslider:before{transform:translateX(18px);}
   </div>
   <!-- Success view -->
   <div id="cust-success" class="cust-success" style="display:none;">
-    <div class="cs-icon">✅</div>
-    <div class="cs-title">Pesanan Diterima!</div>
+    <div class="cs-icon" id="cs-status-icon">⏳</div>
+    <div class="cs-title" id="cs-status-title">Pesanan Diterima!</div>
     <div class="cs-sub">Nombor tiket anda:</div>
     <div class="cs-ticket" id="cs-ticket-display">--</div>
-    <div class="cs-note">
+    <div id="cs-status-bar" style="display:flex;align-items:center;gap:10px;background:#f5f2ee;border-radius:14px;padding:12px 18px;margin:8px 0 4px;width:100%;max-width:320px;">
+      <span id="cs-dot-1" style="width:12px;height:12px;border-radius:50%;background:#C0392B;flex-shrink:0;"></span>
+      <span style="font-size:12px;font-weight:700;color:#2C2C2A;flex:1;" id="cs-status-text">Menunggu pengesahan bayaran…</span>
+    </div>
+    <div class="cs-note" id="cs-note-box">
       🧾 Tunjukkan nombor tiket ini kepada kaunter.<br>
       Bayaran akan dibuat di kaunter.<br><br>
-      <strong>Sila tunggu — pesanan anda sedang disediakan.</strong>
+      <strong>📲 Halaman ini akan berbunyi apabila makanan siap!</strong><br>
+      <span style="font-size:11px;opacity:.8;">Pastikan skrin tidak dikunci.</span>
     </div>
   </div>
 </div>
@@ -395,14 +400,25 @@ input:checked+.tslider:before{transform:translateX(18px);}
   <button onclick="dismissAdminAlertGoPayments()" style="background:transparent;border:2px solid rgba(255,255,255,.4);color:#fff;border-radius:16px;padding:14px 32px;font-size:14px;font-weight:700;cursor:pointer;width:100%;max-width:320px;margin-top:10px;">💰 Terus ke Semak Bayaran</button>
 </div>
 
-<!-- FOOD READY FULLSCREEN ALERT -->
-<div id="food-ready-alert" style="display:none;position:fixed;inset:0;background:rgba(30,132,73,.96);z-index:9500;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;">
-  <div style="font-size:80px;margin-bottom:16px;animation:pulse-icon 0.6s ease-in-out infinite alternate;">🍽️</div>
-  <div style="font-size:26px;font-weight:900;color:#fff;margin-bottom:8px;">MAKANAN SIAP!</div>
-  <div style="font-size:15px;color:rgba(255,255,255,.9);margin-bottom:6px;">Pesanan anda telah siap</div>
-  <div id="food-ready-ticket" style="font-size:64px;font-weight:900;color:#fff;line-height:1;margin:12px 0;border:4px solid rgba(255,255,255,.5);border-radius:20px;padding:8px 28px;">--</div>
-  <div style="font-size:14px;color:rgba(255,255,255,.85);margin-bottom:28px;">Sila ke kaunter untuk ambil pesanan anda</div>
-  <button onclick="dismissFoodReadyAlert()" style="background:#fff;color:#1E8449;border:none;border-radius:16px;padding:16px 48px;font-size:16px;font-weight:800;cursor:pointer;width:100%;max-width:320px;">✅ OK, Saya Faham</button>
+<!-- FOOD READY FULLSCREEN ALERT — 顾客版 -->
+<div id="food-ready-alert" style="display:none;position:fixed;inset:0;background:rgba(30,132,73,.97);z-index:9500;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;">
+  <div style="font-size:88px;margin-bottom:8px;animation:pulse-icon 0.55s ease-in-out infinite alternate;">🍽️</div>
+  <div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-.5px;">MAKANAN SIAP!</div>
+  <div style="font-size:14px;color:rgba(255,255,255,.85);margin:8px 0 4px;">Pesanan tiket</div>
+  <div id="food-ready-ticket" style="font-size:72px;font-weight:900;color:#fff;line-height:1;margin:10px 0;border:4px solid rgba(255,255,255,.6);border-radius:22px;padding:8px 36px;">--</div>
+  <div style="font-size:16px;color:#fff;font-weight:700;margin-bottom:8px;">telah siap! 🎉</div>
+  <div style="font-size:13px;color:rgba(255,255,255,.8);margin-bottom:28px;line-height:1.7;">Sila ke kaunter untuk ambil pesanan anda.<br>Terima kasih kerana menunggu! 🙏</div>
+  <button onclick="dismissFoodReadyAlert()" style="background:#fff;color:#1E8449;border:none;border-radius:16px;padding:16px 48px;font-size:16px;font-weight:800;cursor:pointer;width:100%;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.2);">✅ OK, Pergi Ambil!</button>
+</div>
+
+<!-- FOOD READY FULLSCREEN ALERT — Admin版 -->
+<div id="admin-food-ready-alert" style="display:none;position:fixed;inset:0;background:rgba(25,100,60,.97);z-index:9400;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;">
+  <div style="font-size:72px;margin-bottom:12px;animation:pulse-icon 0.7s ease-in-out infinite alternate;">🔔</div>
+  <div style="font-size:22px;font-weight:900;color:#fff;margin-bottom:6px;">MAKANAN SIAP!</div>
+  <div style="font-size:14px;color:rgba(255,255,255,.8);margin-bottom:4px;">Sila panggil pelanggan tiket</div>
+  <div id="admin-food-ready-ticket" style="font-size:64px;font-weight:900;color:#fff;line-height:1;margin:12px 0;border:4px solid rgba(255,255,255,.5);border-radius:20px;padding:8px 28px;">--</div>
+  <div id="admin-food-ready-items" style="font-size:13px;color:rgba(255,255,255,.85);margin-bottom:24px;line-height:1.8;max-width:320px;"></div>
+  <button onclick="dismissAdminFoodReadyAlert()" style="background:#fff;color:#1E6438;border:none;border-radius:16px;padding:16px 48px;font-size:16px;font-weight:800;cursor:pointer;width:100%;max-width:320px;">✅ Faham · Panggil Pelanggan</button>
 </div>
 
 <style>
@@ -1405,17 +1421,88 @@ function checkAndNotifyAdmin(){
 }
 
 function checkAndNotifyFoodReady(){
-  // For admin/staff: alert when kitchen marks food ready
+  // Admin端：Firebase sync触发，检测新的ready订单并全屏通知admin
   if(S.currentRole !== 'staff') return;
   const ready = Object.values(S.orders).filter(o=>o.status==='ready');
   const newReady = ready.filter(o=>!_lastKnownReadyIds.has(o.id));
   if(newReady.length > 0){
     const latest = newReady[newReady.length-1];
-    showFoodReadyAlert(latest);
+    showAdminFoodReadyAlert(latest);
     if(navigator.vibrate) navigator.vibrate([200,100,200,100,200,100,200]);
     tryBrowserNotify('🍽️ Makanan Siap! Tiket #'+fmt(latest.ticketNum), 'Sila panggil pelanggan untuk ambil pesanan');
   }
   _lastKnownReadyIds = new Set(ready.map(o=>o.id));
+}
+
+// 顾客端：提交订单后开始实时监听自己那张票的状态
+function custWatchOrderStatus(oid, ticketNum){
+  if(!firebaseReady || !dbRef) {
+    // 没有Firebase，用轮询localStorage（fallback）
+    const poll = setInterval(()=>{
+      loadFromLocal();
+      const o = S.orders[oid];
+      if(o && (o.status==='ready'||o.status==='served_confirmed')){
+        clearInterval(poll);
+        custShowFoodReady(ticketNum);
+      }
+    }, 3000);
+    return;
+  }
+  // Firebase实时监听
+  const orderRef = db.ref('kantin/orders/'+oid);
+  orderRef.on('value', snap=>{
+    const data = snap.val();
+    if(!data) return;
+    // 更新状态栏
+    custUpdateStatusBar(data.status, ticketNum);
+    if(data.status === 'ready'){
+      orderRef.off(); // 停止监听
+      custShowFoodReady(ticketNum);
+    }
+    if(data.status === 'served_confirmed'){
+      orderRef.off();
+    }
+  });
+}
+
+function custUpdateStatusBar(status, ticketNum){
+  const statusText = document.getElementById('cs-status-text');
+  const statusDot = document.getElementById('cs-dot-1');
+  const statusIcon = document.getElementById('cs-status-icon');
+  const statusTitle = document.getElementById('cs-status-title');
+  if(!statusText) return;
+  const map = {
+    'pending_payment': {text:'Menunggu pengesahan bayaran…', color:'#C0392B', icon:'⏳', title:'Pesanan Diterima!'},
+    'paid':            {text:'✅ Bayaran disahkan · Dapur sedang menyedia…', color:'#E67E22', icon:'👨‍🍳', title:'Sedang Disediakan…'},
+    'ready':           {text:'🍽️ SIAP! Sila ke kaunter ambil pesanan!', color:'#27AE60', icon:'🍽️', title:'Makanan Siap!'},
+    'served_confirmed':{text:'✅ Selesai. Terima kasih!', color:'#888', icon:'✅', title:'Selesai'},
+  };
+  const s = map[status] || map['pending_payment'];
+  statusText.textContent = s.text;
+  statusDot.style.background = s.color;
+  if(statusIcon) statusIcon.textContent = s.icon;
+  if(statusTitle) statusTitle.textContent = s.title;
+}
+
+function custShowFoodReady(ticketNum){
+  // 震动
+  if(navigator.vibrate) navigator.vibrate([500,200,500,200,500,200,800]);
+  // 浏览器通知
+  tryBrowserNotify('🍽️ Makanan Siap! Tiket #'+fmt(ticketNum), 'Sila ke kaunter untuk ambil pesanan anda!');
+  // 全屏弹出
+  document.getElementById('food-ready-ticket').textContent = '#'+fmt(ticketNum);
+  document.getElementById('food-ready-alert').style.display='flex';
+}
+
+function showAdminFoodReadyAlert(order){
+  document.getElementById('admin-food-ready-ticket').textContent = '#'+fmt(order.ticketNum);
+  document.getElementById('admin-food-ready-items').innerHTML =
+    order.items.map(i=>`<div>• ${i.name} <strong>x${i.qty}</strong></div>`).join('');
+  document.getElementById('admin-food-ready-alert').style.display='flex';
+}
+
+function dismissAdminFoodReadyAlert(){
+  document.getElementById('admin-food-ready-alert').style.display='none';
 }
 
 function showAdminNewOrderAlert(order){
@@ -1433,12 +1520,6 @@ function dismissAdminAlert(){
 function dismissAdminAlertGoPayments(){
   document.getElementById('admin-new-order-alert').style.display='none';
   staffTab('payments');
-}
-
-function showFoodReadyAlert(order){
-  const el = document.getElementById('food-ready-alert');
-  document.getElementById('food-ready-ticket').textContent = '#'+fmt(order.ticketNum);
-  el.style.display='flex';
 }
 
 function dismissFoodReadyAlert(){
@@ -1625,7 +1706,6 @@ function custSubmitOrder(){
   const rId = receiptId(receiptNum);
   const dateTime = fmtDateTime();
 
-  // Status: 'pending_payment' — customer ordered, admin to confirm payment
   S.orders[oid] = {
     id:oid, ticketNum:num, items, note,
     subtotal, sstAmt, total:grandTotal,
@@ -1633,13 +1713,16 @@ function custSubmitOrder(){
     time:now(), dateTime, receiptId:rId, receiptNum,
     fromCustomer:true
   };
-  saveState(); // push to Firebase — admin sees instantly
+  saveState();
 
   // Show success screen
   document.getElementById('cust-ordering').style.display='none';
   document.getElementById('cust-success').style.display='flex';
   document.getElementById('cs-ticket-display').textContent='#'+fmt(num);
   updatePayDot();
+
+  // 顾客端：开始监听Firebase，等自己那张票的状态变ready
+  custWatchOrderStatus(oid, num);
 }
 
 // ═══════════════════════════════
