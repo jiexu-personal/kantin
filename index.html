@@ -14,6 +14,8 @@
 <link rel="icon" type="image/png" href="icon.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
 :root {
@@ -382,6 +384,7 @@ input:checked+.tslider:before{transform:translateX(18px);}
   <div class="topbar">
     <button class="tb-back" onclick="goBack()">←</button>
     <span class="tb-title" id="tb-title">Kantin Terminal Ferry</span>
+    <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#888;flex-shrink:0;margin-right:4px;" title="Sync status"></span>
     <span class="role-badge" id="role-badge"></span>
   </div>
 
@@ -552,29 +555,122 @@ let S={
 };
 
 // ═══════════════════════════════
-// PERSISTENCE
+// FIREBASE CONFIG — TUKAR NILAI INI!
 // ═══════════════════════════════
-const STORAGE_KEY='kantin_state_v3';
-function saveState(){
-  try{
-    localStorage.setItem(STORAGE_KEY,JSON.stringify({
-      nextTicket:S.nextTicket,nextId:S.nextId,nextReceiptNum:S.nextReceiptNum,
-      orders:S.orders,payMethods:S.payMethods,biz:S.biz
-    }));
-  }catch(e){console.warn('Save failed',e);}
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC0e61q0cQKOb2n3zDnkw8HxCUDPnrTfjI",
+  authDomain: "kantin-141fc.firebaseapp.com",
+  databaseURL: "https://kantin-141fc-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kantin-141fc",
+  storageBucket: "kantin-141fc.firebasestorage.app",
+  messagingSenderId: "307169780207",
+  appId: "1:307169780207:web:3e942cbc30402bf68c161a"
+};
+
+// ═══════════════════════════════
+// FIREBASE INIT
+// ═══════════════════════════════
+let db = null;
+let dbRef = null;
+let firebaseReady = false;
+
+function initFirebase() {
+  try {
+    if (FIREBASE_CONFIG.apiKey === 'TUKAR_API_KEY') {
+      console.warn('Firebase belum dikonfigurasi — guna localStorage sahaja');
+      loadFromLocal();
+      return;
+    }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    dbRef = db.ref('kantin');
+    firebaseReady = true;
+    console.log('Firebase connected ✅');
+    const dot = document.getElementById('sync-dot');
+    if (dot) dot.style.background = '#27AE60'; // green = synced
+    db.ref('.info/connected').on('value', snap => {
+      const dot = document.getElementById('sync-dot');
+      if (!dot) return;
+      dot.style.background = snap.val() ? '#27AE60' : '#E74C3C';
+      dot.title = snap.val() ? '🟢 Sync aktif' : '🔴 Offline';
+    });
+    startFirebaseSync();
+  } catch(e) {
+    console.warn('Firebase error, fallback to localStorage:', e);
+    loadFromLocal();
+  }
 }
-function loadState(){
-  try{
-    const raw=localStorage.getItem(STORAGE_KEY);
-    if(!raw)return;
-    const d=JSON.parse(raw);
-    if(d.nextTicket)S.nextTicket=d.nextTicket;
-    if(d.nextId)S.nextId=d.nextId;
-    if(d.nextReceiptNum)S.nextReceiptNum=d.nextReceiptNum;
-    if(d.orders)S.orders=d.orders;
-    if(d.payMethods&&d.payMethods.length)S.payMethods=d.payMethods;
-    if(d.biz)S.biz={...S.biz,...d.biz};
-  }catch(e){console.warn('Load failed',e);}
+
+function startFirebaseSync() {
+  // Listen for ALL changes from Firebase — real-time sync
+  dbRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) { saveToFirebase(); return; } // first time, push local state
+    // Merge Firebase data into S
+    if (data.nextTicket !== undefined) S.nextTicket = data.nextTicket;
+    if (data.nextId !== undefined) S.nextId = data.nextId;
+    if (data.nextReceiptNum !== undefined) S.nextReceiptNum = data.nextReceiptNum;
+    if (data.orders) S.orders = data.orders; else S.orders = {};
+    if (data.payMethods && data.payMethods.length) S.payMethods = data.payMethods;
+    if (data.biz) S.biz = {...S.biz, ...data.biz};
+    // Refresh UI if app is open
+    if (S.currentRole === 'staff') {
+      renderHome();
+      renderPayments();
+      updatePayDot();
+      if (document.getElementById('staff-tab-receipts') && !document.getElementById('staff-tab-receipts').classList.contains('hidden')) renderReceiptHistory();
+      if (document.getElementById('staff-tab-stats') && !document.getElementById('staff-tab-stats').classList.contains('hidden')) renderStats();
+    }
+    if (S.currentRole === 'kitchen') renderKitchen();
+    // Check for new customer orders — notify admin
+    const newPending = Object.values(S.orders).filter(o => o.fromCustomer && o.status === 'pending_payment');
+    if (newPending.length > 0) updatePayDot();
+    // Also save to localStorage as backup
+    saveToLocal();
+  });
+}
+
+function saveToFirebase() {
+  if (!firebaseReady || !dbRef) { saveToLocal(); return; }
+  dbRef.set({
+    nextTicket: S.nextTicket,
+    nextId: S.nextId,
+    nextReceiptNum: S.nextReceiptNum,
+    orders: S.orders,
+    payMethods: S.payMethods,
+    biz: S.biz
+  }).catch(e => { console.warn('Firebase save error:', e); saveToLocal(); });
+}
+
+// ═══════════════════════════════
+// PERSISTENCE (localStorage backup)
+// ═══════════════════════════════
+const STORAGE_KEY = 'kantin_state_v3';
+function saveState() {
+  if (firebaseReady) saveToFirebase();
+  else saveToLocal();
+}
+function saveToLocal() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      nextTicket: S.nextTicket, nextId: S.nextId, nextReceiptNum: S.nextReceiptNum,
+      orders: S.orders, payMethods: S.payMethods, biz: S.biz
+    }));
+  } catch(e) { console.warn('Local save failed', e); }
+}
+function loadState() { loadFromLocal(); }
+function loadFromLocal() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.nextTicket) S.nextTicket = d.nextTicket;
+    if (d.nextId) S.nextId = d.nextId;
+    if (d.nextReceiptNum) S.nextReceiptNum = d.nextReceiptNum;
+    if (d.orders) S.orders = d.orders;
+    if (d.payMethods && d.payMethods.length) S.payMethods = d.payMethods;
+    if (d.biz) S.biz = {...S.biz, ...d.biz};
+  } catch(e) { console.warn('Load failed', e); }
 }
 
 // ═══════════════════════════════
@@ -1270,8 +1366,42 @@ function confirmPayment(oid){
 // CUSTOMER MODE
 // ═══════════════════════════════
 function enterCustomerMode(){
-  loadState();
-  // Auto-assign ticket number
+  // Customer also connects Firebase to write orders
+  if (!firebaseReady && FIREBASE_CONFIG.apiKey !== 'TUKAR_API_KEY') {
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.database();
+      dbRef = db.ref('kantin');
+      firebaseReady = true;
+      // Get latest state from Firebase first
+      dbRef.once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (data) {
+          if (data.nextTicket !== undefined) S.nextTicket = data.nextTicket;
+          if (data.nextId !== undefined) S.nextId = data.nextId;
+          if (data.nextReceiptNum !== undefined) S.nextReceiptNum = data.nextReceiptNum;
+          if (data.orders) S.orders = data.orders;
+          if (data.payMethods && data.payMethods.length) S.payMethods = data.payMethods;
+          if (data.biz) S.biz = {...S.biz, ...data.biz};
+        }
+        const num = S.nextTicket++;
+        S.customer = {cart:{}, cat:'Semua', ticket:num};
+        saveState();
+        document.getElementById('role-picker').style.display='none';
+        document.getElementById('customer-page').style.display='block';
+        document.getElementById('cust-ticket-num').textContent='#'+fmt(num);
+        custRenderMenu();
+      }).catch(e => {
+        console.warn('Firebase read error:', e);
+        _localEnterCustomer();
+      });
+      return;
+    } catch(e) { console.warn('Firebase customer init error:', e); }
+  }
+  _localEnterCustomer();
+}
+
+function _localEnterCustomer(){
   const num = S.nextTicket++;
   S.customer = {cart:{}, cat:'Semua', ticket:num};
   saveState();
@@ -1355,7 +1485,7 @@ function custSubmitOrder(){
     time:now(), dateTime, receiptId:rId, receiptNum,
     fromCustomer:true
   };
-  saveState();
+  saveState(); // push to Firebase — admin sees instantly
 
   // Show success screen
   document.getElementById('cust-ordering').style.display='none';
@@ -1399,11 +1529,13 @@ window.addEventListener('DOMContentLoaded',()=>{
   // Check if customer mode via URL param
   const urlParams = new URLSearchParams(window.location.search);
   if(urlParams.get('mode') === 'customer') {
+    loadFromLocal(); // customer just needs local menu data
     enterCustomerMode();
     return;
   }
-  loadState();
+  loadState(); // load local first for instant UI
   showPWAStatus();
+  initFirebase(); // then connect Firebase for real-time sync
   if(isIOS&&!isStandalone&&!localStorage.getItem('install_dismissed')){
     setTimeout(()=>showInstallBanner(),2500);
   }
