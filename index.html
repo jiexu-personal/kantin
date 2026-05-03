@@ -13,6 +13,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
 :root {
@@ -246,6 +247,32 @@ input:checked+.tslider:before{transform:translateX(18px);}
 @media (min-width:1024px){
   .content,.content-kitchen{max-width:700px;}
 }
+
+/* CUSTOMER ORDER PAGE */
+.cust-wrap{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;}
+.cust-header{background:var(--amber-dark);color:#fff;padding:calc(var(--sat)+16px) 16px 16px;text-align:center;}
+.cust-logo{font-size:36px;margin-bottom:4px;}
+.cust-title{font-size:16px;font-weight:800;letter-spacing:-.2px;}
+.cust-sub{font-size:11px;opacity:.7;margin-top:3px;}
+.cust-ticket-banner{background:linear-gradient(135deg,var(--amber-dark),#7B1B1B);color:#fff;margin:14px;border-radius:var(--rl);padding:16px;display:flex;align-items:center;justify-content:space-between;}
+.ctb-label{font-size:10px;opacity:.7;font-weight:700;letter-spacing:.05em;}
+.ctb-num{font-size:40px;font-weight:900;color:#fff;line-height:1;}
+.cust-content{padding:0 14px 100px;}
+.cust-submit-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 14px calc(var(--sab)+12px);z-index:200;}
+.cust-success{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;}
+.cs-icon{font-size:64px;margin-bottom:16px;}
+.cs-title{font-size:20px;font-weight:800;color:var(--green);margin-bottom:8px;}
+.cs-sub{font-size:13px;color:var(--muted);line-height:1.6;}
+.cs-ticket{font-size:56px;font-weight:900;color:var(--amber);margin:16px 0;}
+.cs-note{font-size:12px;background:var(--amber-pale);color:var(--amber-dark);border-radius:12px;padding:12px 16px;margin-top:12px;line-height:1.6;}
+/* QR modal */
+.qr-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.qr-box{background:#fff;border-radius:20px;padding:24px;text-align:center;max-width:320px;width:100%;}
+.qr-title{font-size:15px;font-weight:800;margin-bottom:4px;}
+.qr-sub{font-size:11px;color:var(--muted);margin-bottom:16px;}
+.qr-img{width:200px;height:200px;margin:0 auto 16px;display:block;}
+.qr-url{font-size:10px;color:var(--muted);word-break:break-all;background:var(--bg);padding:8px;border-radius:8px;margin-bottom:12px;}
+
 </style>
 </head>
 <body>
@@ -284,7 +311,70 @@ input:checked+.tslider:before{transform:translateX(18px);}
       <div class="rc-desc">Lihat pesanan · Sahkan siap</div>
     </div>
   </div>
-  <div class="rp-copy" style="margin-top:20px;">© ChanJX · +60-18 781 1293</div>
+  <button class="btn btn-outline" style="margin-top:16px;font-size:12px;max-width:340px;width:100%;" onclick="showQRModal()">📱 Jana QR Kod untuk Pelanggan</button>
+  <div class="rp-copy" style="margin-top:12px;">© ChanJX · +60-18 781 1293</div>
+</div>
+
+
+<!-- CUSTOMER ORDER PAGE -->
+<div id="customer-page" style="display:none;">
+  <!-- Ordering view -->
+  <div id="cust-ordering" class="cust-wrap">
+    <div class="cust-header">
+      <div class="cust-logo">☕</div>
+      <div class="cust-title">Kantin Terminal Ferry</div>
+      <div class="cust-sub">Minyak Beku, Batu Pahat · Pilih pesanan anda</div>
+    </div>
+    <div class="cust-ticket-banner">
+      <div>
+        <div class="ctb-label">NO. TIKET ANDA</div>
+        <div class="ctb-num" id="cust-ticket-num">--</div>
+      </div>
+      <div style="font-size:28px;">🎫</div>
+    </div>
+    <div class="cust-content">
+      <div class="cat-bar" id="cust-cat-bar" style="padding:0;margin-bottom:12px;">
+        <button class="cat-btn active" onclick="custSetCat(this,'Semua')">Semua</button>
+        <button class="cat-btn" onclick="custSetCat(this,'Makanan')">Makanan</button>
+        <button class="cat-btn" onclick="custSetCat(this,'Tambahan')">Tambahan</button>
+        <button class="cat-btn" onclick="custSetCat(this,'Minuman Panas')">☕ Panas</button>
+        <button class="cat-btn" onclick="custSetCat(this,'Minuman Sejuk')">🧊 Sejuk</button>
+      </div>
+      <div class="card" style="overflow:hidden;margin-bottom:12px;">
+        <div id="cust-menu-list"></div>
+      </div>
+      <div id="cust-cart-preview"></div>
+      <textarea class="order-note" id="cust-note" rows="2" placeholder="Nota: kurang pedas, tiada bawang…" style="margin-top:8px;width:100%;"></textarea>
+    </div>
+    <div class="cust-submit-bar">
+      <button class="btn btn-amber" id="cust-submit-btn" onclick="custSubmitOrder()" disabled style="opacity:.5;">
+        Pilih item untuk hantar pesanan
+      </button>
+    </div>
+  </div>
+  <!-- Success view -->
+  <div id="cust-success" class="cust-success" style="display:none;">
+    <div class="cs-icon">✅</div>
+    <div class="cs-title">Pesanan Diterima!</div>
+    <div class="cs-sub">Nombor tiket anda:</div>
+    <div class="cs-ticket" id="cs-ticket-display">--</div>
+    <div class="cs-note">
+      🧾 Tunjukkan nombor tiket ini kepada kaunter.<br>
+      Bayaran akan dibuat di kaunter.<br><br>
+      <strong>Sila tunggu — pesanan anda sedang disediakan.</strong>
+    </div>
+  </div>
+</div>
+
+<!-- QR MODAL -->
+<div id="qr-modal" class="qr-modal" style="display:none;" onclick="closeQRModal()">
+  <div class="qr-box" onclick="event.stopPropagation()">
+    <div class="qr-title">📱 QR Kod Pesanan Pelanggan</div>
+    <div class="qr-sub">Pelanggan imbas untuk order sendiri</div>
+    <canvas id="qr-canvas" class="qr-img"></canvas>
+    <div class="qr-url" id="qr-url-text"></div>
+    <button class="btn btn-amber" style="margin-bottom:8px;" onclick="closeQRModal()">Tutup</button>
+  </div>
 </div>
 
 <!-- APP SHELL -->
@@ -448,6 +538,7 @@ let S={
     {id:'qr',name:'QR / Online',icon:'🔲',enabled:true,builtin:true},
   ],
   waiter:{cart:{},cat:'Semua',selectedMethod:'cash'},
+  customer:{cart:{},cat:'Semua',ticket:null},
   currentRole:null,
   biz:{
     name:'Kantin Terminal Ferry',
@@ -658,11 +749,8 @@ function submitOrder(){
   cancelOrderForm();renderActiveOrders();updatePayDot();
   saveState();
   showToast('✅ Bayaran diterima · '+rId);
-  setTimeout(()=>{
-    if(confirm('Resit berjaya dibuat!\n\nMahu download PDF resit sekarang?')){
-      generateReceiptPDF(S.orders[oid]);
-    }
-  },300);
+  // Auto backup to Drive silently — no popup
+  setTimeout(()=>generateReceiptPDF(S.orders[oid]), 400);
 }
 
 // ═══════════════════════════════
@@ -676,8 +764,8 @@ function renderActiveOrders(){
   const wrap=document.getElementById('active-orders-section');
   const active=Object.values(S.orders).filter(o=>o.status!=='served_confirmed').sort((a,b)=>a.id-b.id);
   if(!active.length){wrap.innerHTML='';return;}
-  const sLabel={paid:'Di Dapur',ready:'Siap · Tunggu Ambil'};
-  const sCls={paid:'badge-preparing',ready:'badge-ready'};
+  const sLabel={pending_payment:'⏳ Tunggu Bayar',paid:'Di Dapur',ready:'Siap · Tunggu Ambil'};
+  const sCls={pending_payment:'badge-preparing',paid:'badge-preparing',ready:'badge-ready'};
   let html='<div class="section-label" style="margin-bottom:8px;">Pesanan Aktif · '+active.length+'</div>';
   active.forEach(o=>{
     const items=o.items.map(i=>i.id+'x'+i.qty).join(' · ');
@@ -701,10 +789,10 @@ function renderActiveOrders(){
 // ═══════════════════════════════
 function renderPayments(){
   const wrap=document.getElementById('sp-payments-content');
-  const all=Object.values(S.orders).filter(o=>o.status==='paid'||o.status==='ready').sort((a,b)=>a.id-b.id);
+  const all=Object.values(S.orders).filter(o=>o.status==='paid'||o.status==='ready'||o.status==='pending_payment').sort((a,b)=>a.id-b.id);
   if(!all.length){wrap.innerHTML='<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Tiada pesanan aktif</div></div>';return;}
-  const sLabel={paid:'Di Dapur',ready:'Siap Ambil'};
-  const sCls={paid:'badge-preparing',ready:'badge-ready'};
+  const sLabel={pending_payment:'⏳ Tunggu Bayar',paid:'Di Dapur',ready:'Siap Ambil'};
+  const sCls={pending_payment:'badge-preparing',paid:'badge-preparing',ready:'badge-ready'};
   wrap.innerHTML='<div class="section-label" style="margin-bottom:10px;">Dalam Proses · '+all.length+'</div>'+
   all.map(o=>{
     const m=S.payMethods.find(p=>p.id===o.payMethod)||{name:o.payMethod,icon:'💳'};
@@ -720,8 +808,10 @@ function renderPayments(){
         <span class="pcc-method">${m.icon} ${m.name}</span>
         <span class="pcc-total">RM ${o.total.toFixed(2)}</span>
       </div>
-      <div style="padding:8px 14px 12px;display:flex;gap:8px;">
-        <button class="receipt-btn" onclick="generateReceiptPDF(S.orders[${o.id}])">🧾 Download PDF Resit</button>
+      <div style="padding:8px 14px 12px;display:flex;gap:8px;flex-wrap:wrap;">
+        ${o.status==='pending_payment'
+          ?`<button class="btn btn-green btn-sm" onclick="confirmPayment(${o.id})">💰 Sahkan Bayaran</button>`
+          :`<button class="receipt-btn" onclick="generateReceiptPDF(S.orders[${o.id}])">🧾 PDF Resit → Drive</button>`}
       </div>
     </div>`;
   }).join('');
@@ -933,46 +1023,35 @@ function generateReceiptPDF(order){
   doc.text('Computer generated receipt.', W/2, y, {align:'center'}); y+=3.5;
   doc.text('Powered by ChanJX · '+fmtDateTime(), W/2, y, {align:'center'});
 
-  // ── Save & Backup to Google Drive ─────────────────────────────────
+  // ── Backup to Google Drive only (no download popup) ────────────
   const filename = order.receiptId + '.pdf';
+  // No doc.save() — silent backup only
 
-  // 1. Local download
-  doc.save(filename);
-  showToast('✅ ' + filename + ' downloaded!');
-
-  // 2. Backup to Google Drive via hidden form (bypasses iOS PWA restrictions)
   try {
     const pdfBase64 = doc.output('datauristring').split(',')[1];
     const backupUrl = 'https://stellular-otter-b53a66.netlify.app/.netlify/functions/backup';
 
-    showToast('☁️ Backing up to Google Drive...');
+    showToast('☁️ Backup ke Google Drive...');
 
-    // Use fetch with explicit headers — most compatible approach
     fetch(backupUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        filename: filename,
-        file: pdfBase64,
-        mimeType: 'application/pdf'
-      })
+      body: JSON.stringify({ filename: filename, file: pdfBase64, mimeType: 'application/pdf' })
     })
     .then(function(res) { return res.json(); })
     .then(function(data) {
-      if (data.status === 'success') showToast('✅ Backup Drive Berjaya!');
-      else showToast('❌ ' + data.message);
+      if (data.status === 'success') showToast('✅ ' + filename + ' → Drive ✓');
+      else showToast('❌ Drive error: ' + data.message);
     })
     .catch(function(err) {
-      // Last resort: beacon API (fire and forget, works in all iOS contexts)
-      var payload = JSON.stringify({ filename: filename, file: pdfBase64, mimeType: 'application/pdf' });
-      var blob = new Blob([payload], { type: 'application/json' });
+      // Fallback: sendBeacon
+      var blob = new Blob([JSON.stringify({ filename: filename, file: pdfBase64, mimeType: 'application/pdf' })], { type: 'application/json' });
       var sent = navigator.sendBeacon(backupUrl, blob);
-      if (sent) showToast('✅ Backup Drive Berjaya!');
-      else showToast('❌ Backup Gagal: ' + err.message);
+      showToast(sent ? '✅ ' + filename + ' → Drive ✓' : '❌ Backup gagal');
     });
 
   } catch(e) {
-    console.error('Base64 Error:', e);
+    console.error('PDF Backup Error:', e);
     showToast('❌ PDF Error: ' + e.message);
   }
 }
@@ -1160,10 +1239,165 @@ function showToast(msg){
   clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',3000);
 }
 
+
+
+// ═══════════════════════════════
+// CONFIRM PAYMENT (for customer orders)
+// ═══════════════════════════════
+function confirmPayment(oid){
+  const order = S.orders[oid];
+  if(!order) return;
+  // Show payment method picker
+  const methods = S.payMethods.filter(m=>m.enabled);
+  const methodList = methods.map(m=>`${m.icon} ${m.name}`).join('\n');
+  const chosen = prompt('Pilih kaedah bayaran:\n\n' + methods.map((m,i)=>`${i+1}. ${m.icon} ${m.name}`).join('\n') + '\n\nTaip nombor (1-'+methods.length+'):');
+  if(!chosen) return;
+  const idx = parseInt(chosen)-1;
+  if(isNaN(idx)||idx<0||idx>=methods.length){ alert('Pilihan tidak sah.'); return; }
+  const method = methods[idx];
+  order.payMethod = method.id;
+  order.status = 'paid';
+  saveState();
+  renderPayments();
+  renderHome();
+  updatePayDot();
+  showToast('✅ Bayaran ' + method.name + ' disahkan · #' + fmt(order.ticketNum));
+  // Auto generate receipt to Drive
+  setTimeout(()=>generateReceiptPDF(order), 400);
+}
+
+// ═══════════════════════════════
+// CUSTOMER MODE
+// ═══════════════════════════════
+function enterCustomerMode(){
+  loadState();
+  // Auto-assign ticket number
+  const num = S.nextTicket++;
+  S.customer = {cart:{}, cat:'Semua', ticket:num};
+  saveState();
+  document.getElementById('role-picker').style.display='none';
+  document.getElementById('customer-page').style.display='block';
+  document.getElementById('cust-ticket-num').textContent='#'+fmt(num);
+  custRenderMenu();
+}
+
+function custSetCat(el, cat){
+  document.querySelectorAll('#cust-cat-bar .cat-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  S.customer.cat = cat;
+  custRenderMenu();
+}
+
+function custRenderMenu(){
+  const items = S.customer.cat==='Semua' ? MENU : MENU.filter(m=>m.cat===S.customer.cat);
+  const wrap = document.getElementById('cust-menu-list');
+  wrap.innerHTML = '';
+  items.forEach(item=>{
+    const qty = S.customer.cart[item.id]||0;
+    const d = document.createElement('div');
+    d.className='menu-row';
+    d.innerHTML=`<div class="mr-code">${item.id}</div>
+    <div class="mr-info"><div class="mr-name">${item.name}</div><div class="mr-sub">${item.cat}</div></div>
+    <div class="mr-price">${item.price!=null?'RM '+item.price.toFixed(2):'—'}</div>
+    ${qty===0
+      ?`<button class="qc-btn plus" onclick="custAdd('${item.id}')">+</button>`
+      :`<div class="qc"><button class="qc-btn" onclick="custRm('${item.id}')">−</button><span class="qc-val">${qty}</span><button class="qc-btn plus" onclick="custAdd('${item.id}')">+</button></div>`}`;
+    wrap.appendChild(d);
+  });
+  custRenderCartPreview();
+}
+
+function custAdd(id){ S.customer.cart[id]=(S.customer.cart[id]||0)+1; custRenderMenu(); }
+function custRm(id){ if(S.customer.cart[id]>1)S.customer.cart[id]--; else delete S.customer.cart[id]; custRenderMenu(); }
+
+function custRenderCartPreview(){
+  const entries = Object.entries(S.customer.cart);
+  const wrap = document.getElementById('cust-cart-preview');
+  const btn = document.getElementById('cust-submit-btn');
+  if(!entries.length){
+    wrap.innerHTML='';
+    btn.disabled=true; btn.style.opacity='.5';
+    btn.textContent='Pilih item untuk hantar pesanan';
+    return;
+  }
+  const custTotal = entries.reduce((s,[id,q])=>{const m=MENU.find(m=>m.id===id);return s+(m&&m.price!=null?m.price*q:0);},0);
+  let html='<div class="card" style="padding:12px 14px;margin-bottom:8px;"><div class="section-label" style="margin-bottom:6px;">Pesanan anda</div>';
+  entries.forEach(([id,q])=>{
+    const m=MENU.find(m=>m.id===id);
+    html+=`<div class="cp-row"><span class="name">[${id}] ${m?m.name:id} x${q}</span><span>${m&&m.price!=null?'RM '+(m.price*q).toFixed(2):'—'}</span></div>`;
+  });
+  html+=`<div class="cp-total" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;"><span class="label">ANGGARAN JUMLAH</span><span class="amt">RM ${custTotal.toFixed(2)}</span></div>`;
+  html+='</div>';
+  wrap.innerHTML=html;
+  btn.disabled=false; btn.style.opacity='1';
+  btn.textContent=`✅ Hantar Pesanan (${entries.length} jenis item)`;
+}
+
+function custSubmitOrder(){
+  const entries = Object.entries(S.customer.cart);
+  if(!entries.length){ alert('Sila pilih item dahulu!'); return; }
+  const num = S.customer.ticket;
+  const note = document.getElementById('cust-note').value.trim();
+  const items = entries.map(([id,qty])=>({...MENU.find(m=>m.id===id), qty}));
+  const subtotal = items.reduce((s,i)=>s+(i.price!=null?i.price*i.qty:0),0);
+  const sstAmt = S.biz.sstEnabled ? +(subtotal*(S.biz.sstRate/100)).toFixed(2) : 0;
+  const grandTotal = +(subtotal+sstAmt).toFixed(2);
+  const oid = S.nextId++;
+  const receiptNum = S.nextReceiptNum++;
+  const rId = receiptId(receiptNum);
+  const dateTime = fmtDateTime();
+
+  // Status: 'pending_payment' — customer ordered, admin to confirm payment
+  S.orders[oid] = {
+    id:oid, ticketNum:num, items, note,
+    subtotal, sstAmt, total:grandTotal,
+    status:'pending_payment', payMethod:null,
+    time:now(), dateTime, receiptId:rId, receiptNum,
+    fromCustomer:true
+  };
+  saveState();
+
+  // Show success screen
+  document.getElementById('cust-ordering').style.display='none';
+  document.getElementById('cust-success').style.display='flex';
+  document.getElementById('cs-ticket-display').textContent='#'+fmt(num);
+  updatePayDot();
+}
+
+// ═══════════════════════════════
+// QR CODE MODAL
+// ═══════════════════════════════
+function showQRModal(){
+  const base = window.location.href.split('?')[0];
+  const url = base + '?mode=customer';
+  document.getElementById('qr-url-text').textContent = url;
+  document.getElementById('qr-modal').style.display='flex';
+  // Clear and regenerate
+  const canvas = document.getElementById('qr-canvas');
+  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+  if(typeof QRCode !== 'undefined'){
+    QRCode.toCanvas(canvas, url, {width:200,margin:2,color:{dark:'#4A0E0E',light:'#ffffff'}}, function(err){
+      if(err) console.error(err);
+    });
+  } else {
+    // Fallback: show URL only
+    canvas.getContext('2d').fillText('QR lib loading...', 10, 100);
+  }
+}
+function closeQRModal(){
+  document.getElementById('qr-modal').style.display='none';
+}
+
 // ═══════════════════════════════
 // INIT
 // ═══════════════════════════════
 window.addEventListener('DOMContentLoaded',()=>{
+  // Check if customer mode via URL param
+  const urlParams = new URLSearchParams(window.location.search);
+  if(urlParams.get('mode') === 'customer') {
+    enterCustomerMode();
+    return;
+  }
   loadState();
   showPWAStatus();
   if(isIOS&&!isStandalone&&!localStorage.getItem('install_dismissed')){
