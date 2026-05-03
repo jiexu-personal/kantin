@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Kantin Terminal Ferry</title>
+<title>Flower Kantin</title>
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Kantin">
+<meta name="apple-mobile-web-app-title" content="Flower Kantin">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#4A0E0E">
 <link rel="apple-touch-icon" href="icon.png">
@@ -298,7 +298,7 @@ input:checked+.tslider:before{transform:translateX(18px);}
 <!-- ROLE PICKER -->
 <div id="role-picker">
   <div class="rp-logo">☕</div>
-  <div class="rp-name">Kantin @ Terminal Ferry<br>Minyak Beku, Batu Pahat</div>
+  <div class="rp-name">Flower Kantin<br>Minyak Beku, Batu Pahat</div>
   <div class="rp-sub">Pilih peranan untuk masuk sistem</div>
   <div id="pwa-status-wrap"></div>
   <div class="role-grid" style="margin-top:18px;">
@@ -324,7 +324,7 @@ input:checked+.tslider:before{transform:translateX(18px);}
   <div id="cust-ordering" class="cust-wrap">
     <div class="cust-header">
       <div class="cust-logo">☕</div>
-      <div class="cust-title">Kantin Terminal Ferry</div>
+      <div class="cust-title">Flower Kantin</div>
       <div class="cust-sub">Minyak Beku, Batu Pahat · Pilih pesanan anda</div>
     </div>
     <div class="cust-ticket-banner">
@@ -349,7 +349,7 @@ input:checked+.tslider:before{transform:translateX(18px);}
       <textarea class="order-note" id="cust-note" rows="2" placeholder="Nota: kurang pedas, tiada bawang…" style="margin-top:8px;width:100%;"></textarea>
     </div>
     <div class="cust-submit-bar">
-      <button class="btn btn-amber" id="cust-submit-btn" onclick="custSubmitOrder()" disabled style="opacity:.5;">
+      <button class="btn btn-amber" id="cust-submit-btn" onclick="custShowConfirm()" disabled style="opacity:.5;">
         Pilih item untuk hantar pesanan
       </button>
     </div>
@@ -368,6 +368,50 @@ input:checked+.tslider:before{transform:translateX(18px);}
   </div>
 </div>
 
+<!-- CUSTOMER CONFIRM ORDER MODAL -->
+<div id="cust-confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:8000;align-items:flex-end;justify-content:center;">
+  <div style="background:#fff;border-radius:24px 24px 0 0;padding:24px 20px calc(env(safe-area-inset-bottom)+24px);width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,.2);">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:44px;margin-bottom:8px;">🛒</div>
+      <div style="font-size:17px;font-weight:800;color:#2C2C2A;">Sahkan Pesanan Anda</div>
+      <div style="font-size:12px;color:#888;margin-top:4px;">Semak semula sebelum hantar</div>
+    </div>
+    <div id="ccm-items" style="background:#f5f2ee;border-radius:14px;padding:14px;margin-bottom:16px;max-height:260px;overflow-y:auto;"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-amber" style="font-size:15px;padding:16px;" onclick="custSubmitOrder()">✅ Ya, Hantar Pesanan!</button>
+      <button class="btn btn-outline" style="font-size:13px;" onclick="document.getElementById('cust-confirm-modal').style.display='none'">← Kembali &amp; Edit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN NEW ORDER FULLSCREEN ALERT -->
+<div id="admin-new-order-alert" style="display:none;position:fixed;inset:0;background:rgba(74,14,14,.96);z-index:9500;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;">
+  <div style="font-size:72px;margin-bottom:16px;animation:pulse-icon 0.8s ease-in-out infinite alternate;">🔔</div>
+  <div style="font-size:24px;font-weight:900;color:#fff;margin-bottom:8px;">PESANAN BARU!</div>
+  <div style="font-size:14px;color:rgba(255,255,255,.8);margin-bottom:6px;">Pelanggan baru menghantar pesanan</div>
+  <div id="admin-alert-ticket" style="font-size:64px;font-weight:900;color:#F5B7B1;line-height:1;margin:12px 0;">--</div>
+  <div id="admin-alert-items" style="font-size:13px;color:rgba(255,255,255,.85);margin-bottom:24px;line-height:1.8;max-width:320px;"></div>
+  <button onclick="dismissAdminAlert()" style="background:#F5B7B1;color:#4A0E0E;border:none;border-radius:16px;padding:16px 48px;font-size:16px;font-weight:800;cursor:pointer;width:100%;max-width:320px;">✅ Faham · Tutup</button>
+  <button onclick="dismissAdminAlertGoPayments()" style="background:transparent;border:2px solid rgba(255,255,255,.4);color:#fff;border-radius:16px;padding:14px 32px;font-size:14px;font-weight:700;cursor:pointer;width:100%;max-width:320px;margin-top:10px;">💰 Terus ke Semak Bayaran</button>
+</div>
+
+<!-- FOOD READY FULLSCREEN ALERT -->
+<div id="food-ready-alert" style="display:none;position:fixed;inset:0;background:rgba(30,132,73,.96);z-index:9500;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;">
+  <div style="font-size:80px;margin-bottom:16px;animation:pulse-icon 0.6s ease-in-out infinite alternate;">🍽️</div>
+  <div style="font-size:26px;font-weight:900;color:#fff;margin-bottom:8px;">MAKANAN SIAP!</div>
+  <div style="font-size:15px;color:rgba(255,255,255,.9);margin-bottom:6px;">Pesanan anda telah siap</div>
+  <div id="food-ready-ticket" style="font-size:64px;font-weight:900;color:#fff;line-height:1;margin:12px 0;border:4px solid rgba(255,255,255,.5);border-radius:20px;padding:8px 28px;">--</div>
+  <div style="font-size:14px;color:rgba(255,255,255,.85);margin-bottom:28px;">Sila ke kaunter untuk ambil pesanan anda</div>
+  <button onclick="dismissFoodReadyAlert()" style="background:#fff;color:#1E8449;border:none;border-radius:16px;padding:16px 48px;font-size:16px;font-weight:800;cursor:pointer;width:100%;max-width:320px;">✅ OK, Saya Faham</button>
+</div>
+
+<style>
+@keyframes pulse-icon {
+  from { transform: scale(1); }
+  to { transform: scale(1.15); }
+}
+</style>
+
 <!-- QR MODAL -->
 <div id="qr-modal" class="qr-modal" style="display:none;" onclick="closeQRModal()">
   <div class="qr-box" onclick="event.stopPropagation()">
@@ -383,7 +427,7 @@ input:checked+.tslider:before{transform:translateX(18px);}
 <div id="app-shell">
   <div class="topbar">
     <button class="tb-back" onclick="goBack()">←</button>
-    <span class="tb-title" id="tb-title">Kantin Terminal Ferry</span>
+    <span class="tb-title" id="tb-title">Flower Kantin</span>
     <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#888;flex-shrink:0;margin-right:4px;" title="Sync status"></span>
     <span class="role-badge" id="role-badge"></span>
   </div>
@@ -544,7 +588,7 @@ let S={
   customer:{cart:{},cat:'Semua',ticket:null},
   currentRole:null,
   biz:{
-    name:'Kantin Terminal Ferry',
+    name:'Flower Kantin',
     address:'Terminal Ferry Minyak Beku, Batu Pahat, Johor',
     tel:'+60-18 781 1293',
     regNo:'',
@@ -620,6 +664,8 @@ function startFirebaseSync() {
       updatePayDot();
       if (document.getElementById('staff-tab-receipts') && !document.getElementById('staff-tab-receipts').classList.contains('hidden')) renderReceiptHistory();
       if (document.getElementById('staff-tab-stats') && !document.getElementById('staff-tab-stats').classList.contains('hidden')) renderStats();
+      checkAndNotifyAdmin();
+      checkAndNotifyFoodReady();
     }
     if (S.currentRole === 'kitchen') renderKitchen();
     // Check for new customer orders — notify admin
@@ -720,13 +766,22 @@ function enter(role){
   S.currentRole=role;
   document.getElementById('role-picker').style.display='none';
   document.getElementById('app-shell').style.display='flex';
-  document.getElementById('tb-title').textContent=role==='staff'?'Admin · Kantin Terminal Ferry':'Dapur · Kantin Terminal Ferry';
+  document.getElementById('tb-title').textContent=role==='staff'?'Admin · Flower Kantin':'Dapur · Flower Kantin';
   const b=document.getElementById('role-badge');
   b.textContent=role==='staff'?'Admin':'Dapur';
   b.className='role-badge '+(role==='staff'?'rb-staff':'rb-kitchen');
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+role).classList.add('active');
-  if(role==='staff')staffTab('home');
+  if(role==='staff'){
+    staffTab('home');
+    // 初始化已知订单ID，避免登录时弹出旧通知
+    _lastKnownPendingIds = new Set(Object.values(S.orders).filter(o=>o.fromCustomer&&o.status==='pending_payment').map(o=>o.id));
+    _lastKnownReadyIds = new Set(Object.values(S.orders).filter(o=>o.status==='ready').map(o=>o.id));
+    // Request notification permission
+    if('Notification' in window && Notification.permission === 'default'){
+      setTimeout(()=>Notification.requestPermission(), 2000);
+    }
+  }
   if(role==='kitchen')renderKitchen();
 }
 function goBack(){
@@ -747,7 +802,7 @@ function staffTab(tab){
   updatePayDot();
 }
 function updatePayDot(){
-  const n=Object.values(S.orders).filter(o=>o.status==='paid'||o.status==='ready').length;
+  const n=Object.values(S.orders).filter(o=>o.status==='paid'||o.status==='ready'||o.status==='pending_payment').length;
   document.getElementById('pay-dot').classList.toggle('show',n>0);
 }
 
@@ -1328,6 +1383,79 @@ function dailyReset(){
   showToast('✅ Reset berjaya! Sedia untuk hari baharu.');
 }
 
+// ═══════════════════════════════
+// FULLSCREEN NOTIFICATIONS
+// ═══════════════════════════════
+let _lastKnownPendingIds = new Set();
+let _lastKnownReadyIds = new Set();
+
+function checkAndNotifyAdmin(){
+  if(S.currentRole !== 'staff') return;
+  const pending = Object.values(S.orders).filter(o=>o.fromCustomer && o.status==='pending_payment');
+  const newOrders = pending.filter(o=>!_lastKnownPendingIds.has(o.id));
+  if(newOrders.length > 0){
+    const latest = newOrders[newOrders.length-1];
+    showAdminNewOrderAlert(latest);
+    // vibrate if available
+    if(navigator.vibrate) navigator.vibrate([300,100,300,100,300]);
+    // try browser notification
+    tryBrowserNotify('🔔 Pesanan Baru! Tiket #'+fmt(latest.ticketNum), latest.items.map(i=>i.name+'x'+i.qty).join(', '));
+  }
+  _lastKnownPendingIds = new Set(pending.map(o=>o.id));
+}
+
+function checkAndNotifyFoodReady(){
+  // For admin/staff: alert when kitchen marks food ready
+  if(S.currentRole !== 'staff') return;
+  const ready = Object.values(S.orders).filter(o=>o.status==='ready');
+  const newReady = ready.filter(o=>!_lastKnownReadyIds.has(o.id));
+  if(newReady.length > 0){
+    const latest = newReady[newReady.length-1];
+    showFoodReadyAlert(latest);
+    if(navigator.vibrate) navigator.vibrate([200,100,200,100,200,100,200]);
+    tryBrowserNotify('🍽️ Makanan Siap! Tiket #'+fmt(latest.ticketNum), 'Sila panggil pelanggan untuk ambil pesanan');
+  }
+  _lastKnownReadyIds = new Set(ready.map(o=>o.id));
+}
+
+function showAdminNewOrderAlert(order){
+  const el = document.getElementById('admin-new-order-alert');
+  document.getElementById('admin-alert-ticket').textContent = '#'+fmt(order.ticketNum);
+  const itemsText = order.items.map(i=>`${i.name} x${i.qty}`).join('\n');
+  document.getElementById('admin-alert-items').innerHTML = order.items.map(i=>`<div>• ${i.name} <strong>x${i.qty}</strong></div>`).join('') + `<div style="margin-top:8px;font-size:14px;font-weight:700;">RM ${order.total.toFixed(2)}</div>`;
+  el.style.display='flex';
+}
+
+function dismissAdminAlert(){
+  document.getElementById('admin-new-order-alert').style.display='none';
+}
+
+function dismissAdminAlertGoPayments(){
+  document.getElementById('admin-new-order-alert').style.display='none';
+  staffTab('payments');
+}
+
+function showFoodReadyAlert(order){
+  const el = document.getElementById('food-ready-alert');
+  document.getElementById('food-ready-ticket').textContent = '#'+fmt(order.ticketNum);
+  el.style.display='flex';
+}
+
+function dismissFoodReadyAlert(){
+  document.getElementById('food-ready-alert').style.display='none';
+}
+
+function tryBrowserNotify(title, body){
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'granted'){
+    try{ new Notification(title, {body, icon:'icon.png'}); }catch(e){}
+  } else if(Notification.permission !== 'denied'){
+    Notification.requestPermission().then(p=>{
+      if(p==='granted') try{ new Notification(title, {body, icon:'icon.png'}); }catch(e){}
+    });
+  }
+}
+
 function showToast(msg){
   let t=document.getElementById('toast');
   if(!t){t=document.createElement('div');t.id='toast';Object.assign(t.style,{position:'fixed',bottom:'calc(var(--sab,0px) + 80px)',left:'50%',transform:'translateX(-50%)',background:'#4A0E0E',color:'#F5B7B1',padding:'11px 22px',borderRadius:'30px',fontSize:'13px',fontWeight:'600',zIndex:'9999',whiteSpace:'nowrap',boxShadow:'0 4px 20px rgba(0,0,0,.3)',transition:'opacity .3s',maxWidth:'90vw',textAlign:'center'});document.body.appendChild(t);}
@@ -1463,7 +1591,27 @@ function custRenderCartPreview(){
   btn.textContent=`✅ Hantar Pesanan (${entries.length} jenis item)`;
 }
 
+function custShowConfirm(){
+  const entries = Object.entries(S.customer.cart);
+  if(!entries.length){ alert('Sila pilih item dahulu!'); return; }
+  let html='';
+  let total=0;
+  entries.forEach(([id,q])=>{
+    const m=MENU.find(m=>m.id===id);
+    const lineTotal=m&&m.price!=null?m.price*q:0;
+    total+=lineTotal;
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.07);">
+      <span style="font-size:13px;font-weight:600;">[${id}] ${m?m.name:id} <span style="color:#888;font-weight:400;">x${q}</span></span>
+      <span style="font-size:13px;font-weight:700;color:#C0392B;">${m&&m.price!=null?'RM '+(lineTotal).toFixed(2):'—'}</span>
+    </div>`;
+  });
+  html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;"><span style="font-size:14px;font-weight:700;">ANGGARAN JUMLAH</span><span style="font-size:18px;font-weight:900;color:#C0392B;">RM ${total.toFixed(2)}</span></div>`;
+  document.getElementById('ccm-items').innerHTML=html;
+  document.getElementById('cust-confirm-modal').style.display='flex';
+}
+
 function custSubmitOrder(){
+  document.getElementById('cust-confirm-modal').style.display='none';
   const entries = Object.entries(S.customer.cart);
   if(!entries.length){ alert('Sila pilih item dahulu!'); return; }
   const num = S.customer.ticket;
